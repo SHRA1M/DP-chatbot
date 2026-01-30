@@ -1,0 +1,11 @@
+streamlit
+requests
+langchain
+langchain-community
+langchain-text-splitters
+faiss-cpu
+huggingface-hub
+sentence-transformers
+Pillow
+streamlit-float
+groq

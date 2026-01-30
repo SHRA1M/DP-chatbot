@@ -1,0 +1,271 @@
+# COMPANY OVERVIEW
+
+## About Digital Protection
+Digital Protection is a specialized consultancy focused on helping organizations navigate the complex landscape of data protection regulations. We combine deep regulatory expertise with practical cybersecurity knowledge to deliver solutions that work in the real world.
+
+## Company Location
+- **Headquarters:** Amman, Jordan
+- **Email:** info@dp-technologies.net
+- **Phone:** +962 790 552 879
+
+## Our Mission
+To empower organizations with the expertise and tools they need to achieve and maintain data protection compliance, transforming regulatory requirements into competitive advantages.
+
+## Our Vision
+To be the leading data protection consultancy in the region, recognized for our expertise, integrity, and commitment to helping organizations build trust through privacy.
+
+## Core Values
+1. **Privacy First** - We prioritize data protection in every solution we deliver.
+2. **Excellence** - Certified professionals committed to the highest standards.
+3. **Partnership** - Long-term relationships built on trust and accountability.
+
+---
+
+# SERVICES
+
+## Service 1: Privacy, Governance & Regulatory Compliance
+
+### Category: Compliance
+
+### Description
+Comprehensive compliance gap assessments, privacy risk analysis, DPIAs, and policy development aligned with GDPR, ISO 27701, and CBJ requirements.
+
+### What We Deliver
+- Compliance gap assessments
+- Privacy risk analysis
+- Data Protection Impact Assessments (DPIAs)
+- Policy and procedure development
+- Evidence preparation for audits
+- Readiness support for regulatory reviews
+- Risk registers and control mapping
+- Security and privacy governance frameworks
+- Roles, responsibilities, and accountability models
+- Executive-level compliance reporting
+
+### Frameworks We Support
+- GDPR (General Data Protection Regulation)
+- ISO/IEC 27701 (Privacy Information Management)
+- ISO 27001 (Information Security Management)
+- ISO 31000 (Risk Management)
+- ISO 22301 (Business Continuity)
+- NIST Risk Management Framework (RMF)
+- NIST Cybersecurity Framework (CSF)
+- Central Bank of Jordan (CBJ) data governance requirements
+- Regional regulators: NCA, NESA, SAMA
+
+### Ideal For
+- Organizations seeking regulatory compliance
+- Companies preparing for audits
+- Businesses expanding into regulated markets
+- Organizations handling sensitive personal data
+
+---
+
+## Service 2: Security Risk & Exposure Assessment
+
+### Category: Security
+
+### Description
+Vulnerability assessments with risk-ranked remediation guidance and compliance-aligned findings.
+
+### What We Deliver
+- Systematic vulnerability scanning and analysis
+- Risk-ranked remediation guidance
+- Compliance-aligned findings (not just technical noise)
+- Infrastructure security assessment
+- Security posture evaluation
+- Prioritized action plans
+
+### Our Approach
+We identify, assess, and treat cyber risks so you can invest in protection where it matters most. Our assessments go beyond technical findings to provide business-context and compliance-relevant insights.
+
+### Ideal For
+- Organizations wanting to understand their security posture
+- Companies preparing for compliance audits
+- Businesses seeking to prioritize security investments
+- Organizations after security incidents
+
+---
+
+## Service 3: Network & Application Security
+
+### Category: Infrastructure
+
+### Description
+Next-generation firewalls, WAF, and secure enterprise networking to support your compliance infrastructure.
+
+### What We Deliver
+- Next-Generation Firewalls (NGFW)
+- Web Application Firewall (WAF)
+- Secure enterprise networking
+- Network architecture review
+- Security configuration review
+- Infrastructure hardening
+
+### Ideal For
+- Organizations modernizing their infrastructure
+- Companies requiring secure network architecture
+- Businesses with web applications needing protection
+- Organizations seeking defense-in-depth strategies
+
+---
+
+## Service 4: Identity & Access Governance
+
+### Category: Controls
+
+### Description
+IAM and PAM solutions that enforce least privilege, accountability, and meet key compliance requirements.
+
+### What We Deliver
+- Identity and Access Management (IAM) solutions
+- Privileged Access Management (PAM) solutions
+- Least privilege enforcement
+- Access accountability and audit trails
+- Role-based access control (RBAC) implementation
+- Identity governance frameworks
+
+### Why It Matters
+These controls enforce least privilege, accountability, and data availability — key compliance requirements for most regulatory frameworks.
+
+### Ideal For
+- Organizations with complex access requirements
+- Companies handling sensitive data
+- Businesses requiring audit trails for compliance
+- Organizations with privileged user management needs
+
+---
+
+# FREQUENTLY ASKED QUESTIONS (FAQ)
+
+## General Questions
+
+### Q: What industries do you serve?
+A: We serve organizations across all industries, with particular expertise in:
+- Banking and Financial Services
+- Healthcare
+- Government and Public Sector
+- Telecommunications
+- Manufacturing
+- Oil & Gas
+- Insurance
+- Education
+- Airlines
+- NGOs
+
+### Q: What regions do you operate in?
+A: We are headquartered in Amman, Jordan, and serve clients throughout the Middle East and North Africa (MENA) region. We have expertise in regional regulations including CBJ (Jordan), NCA (Saudi Arabia), NESA (UAE), and SAMA (Saudi Arabia).
+
+### Q: How long does a typical engagement last?
+A: Engagement duration varies based on scope:
+- Compliance gap assessments: 4-8 weeks
+- Policy development: 6-12 weeks
+- Full compliance programs: 3-12 months
+- Ongoing advisory: Long-term partnerships
+
+### Q: Do you offer remote services?
+A: Yes, we offer both on-site and remote services depending on client needs and project requirements.
+
+## Compliance Questions
+
+### Q: What is GDPR?
+A: The General Data Protection Regulation (GDPR) is a European Union regulation on data protection and privacy. It applies to any organization that processes personal data of EU residents, regardless of where the organization is located.
+
+### Q: What is ISO 27701?
+A: ISO 27701 is an extension to ISO 27001 that provides guidance for establishing, implementing, maintaining, and continually improving a Privacy Information Management System (PIMS).
+
+### Q: What are the CBJ data protection requirements?
+A: The Central Bank of Jordan has established data protection and cybersecurity requirements for financial institutions operating in Jordan. These include data governance frameworks, security controls, and privacy protections. We help organizations align with these requirements.
+
+### Q: What is a DPIA?
+A: A Data Protection Impact Assessment (DPIA) is a process to help identify and minimize data protection risks of a project or system. It is required under GDPR for processing that is likely to result in high risk to individuals.
+
+## Security Questions
+
+### Q: What is the difference between vulnerability assessment and penetration testing?
+A: 
+- **Vulnerability Assessment (VA):** Systematic scanning and analysis to identify security weaknesses. Provides a broad view of vulnerabilities.
+- **Penetration Testing (PT):** Simulated attacks to exploit vulnerabilities and demonstrate real-world impact. Goes deeper than VA.
+
+We clearly separate these services with no overlap.
+
+### Q: What is IAM?
+A: Identity and Access Management (IAM) is a framework of policies and technologies ensuring the right individuals access the right resources at the right times for the right reasons.
+
+### Q: What is PAM?
+A: Privileged Access Management (PAM) is a subset of IAM focused on controlling and monitoring access for users with elevated privileges (administrators, IT staff, etc.).
+
+## Engagement Questions
+
+### Q: How do I get started?
+A: Contact us through:
+- Email: info@dp-technologies.net
+- Phone: +962 790 552 879
+- Website contact form
+
+We will respond within one business day to discuss your needs.
+
+### Q: Do you offer free consultations?
+A: Yes, we offer an initial consultation to understand your requirements and discuss how we can help. Contact us to schedule.
+
+### Q: What is your pricing model?
+A: Our pricing depends on the scope and complexity of the engagement. We offer:
+- Fixed-price projects for defined deliverables
+- Time and materials for advisory services
+- Retainer arrangements for ongoing support
+
+Contact us for a customized quote based on your specific needs.
+
+### Q: Do you provide ongoing support after project completion?
+A: Yes, we believe in long-term partnerships. We offer ongoing advisory, maintenance, and support services to ensure sustained compliance and security.
+
+---
+
+# GLOSSARY OF TERMS
+
+- **CBJ:** Central Bank of Jordan
+- **DPIA:** Data Protection Impact Assessment
+- **GDPR:** General Data Protection Regulation
+- **GRC:** Governance, Risk, and Compliance
+- **IAM:** Identity and Access Management
+- **ISO 27001:** Information Security Management System standard
+- **ISO 27701:** Privacy Information Management System standard
+- **ISO 22301:** Business Continuity Management standard
+- **ISO 31000:** Risk Management standard
+- **NCA:** National Cybersecurity Authority (Saudi Arabia)
+- **NESA:** National Electronic Security Authority (UAE)
+- **NGFW:** Next-Generation Firewall
+- **NIST:** National Institute of Standards and Technology
+- **PAM:** Privileged Access Management
+- **PIMS:** Privacy Information Management System
+- **RBAC:** Role-Based Access Control
+- **RMF:** Risk Management Framework
+- **SAMA:** Saudi Arabian Monetary Authority
+- **VA:** Vulnerability Assessment
+- **WAF:** Web Application Firewall
+
+---
+
+# CONTACT INFORMATION
+
+## Primary Contact
+- **Email:** info@dp-technologies.net
+- **Phone:** +962 790 552 879
+- **Location:** Amman, Jordan
+
+## Business Hours
+Sunday - Thursday: 9:00 AM - 6:00 PM (Jordan Time, GMT+3)
+
+## Response Time
+We respond to all inquiries within one business day.
+
+---
+
+# IMPORTANT NOTES FOR AI ASSISTANT
+
+1. Always be helpful and professional
+2. If unsure about specific pricing, tell the customer to contact us directly
+3. Never make up information not in this document
+4. For technical questions beyond this document, recommend scheduling a consultation
+5. Always offer to connect the customer with our team for detailed discussions
+6. Emphasize our expertise, professionalism, and partnership approach
