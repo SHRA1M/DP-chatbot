@@ -143,7 +143,12 @@ try:
 except Exception as e:
     api_error = str(e)
 
-# --- 6. SYSTEM INSTRUCTIONS ---
+# --- 6. MODEL CONFIGURATION ---
+# Updated to use current Groq models (as of 2025)
+# Options: "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
+# --- 7. SYSTEM INSTRUCTIONS ---
 SYSTEM_INSTRUCTIONS = """You are "DP Assistant", the official AI Customer Service Assistant for Digital Protection, a data protection and compliance consultancy in Amman, Jordan.
 
 ## PERSONALITY
@@ -169,11 +174,11 @@ SYSTEM_INSTRUCTIONS = """You are "DP Assistant", the official AI Customer Servic
 - Phone: +962 790 552 879
 - Location: Amman, Jordan"""
 
-# --- 7. INITIALIZE CHAT ---
+# --- 8. INITIALIZE CHAT ---
 def get_greeting():
     return """Hello! Welcome to Digital Protection.
 
-I'm your DP Assistant, here to help with your questions.
+I'm your DP Assistant, here to help you with your questions.
 How can I assist you today?"""
 
 if "messages" not in st.session_state:
@@ -181,7 +186,7 @@ if "messages" not in st.session_state:
         {"role": "assistant", "content": get_greeting()}
     ]
 
-# --- 8. HEADER (only if NOT embedded) ---
+# --- 9. HEADER (only if NOT embedded) ---
 query_params = st.query_params
 is_embedded = query_params.get("embed", "false").lower() == "true"
 
@@ -192,13 +197,6 @@ if not is_embedded:
             st.image(logo_path, width=50)
     with col2:
         st.markdown("### Digital Protection Support")
-
-# --- 9. SHOW DEBUG INFO (only for troubleshooting - remove later) ---
-# Uncomment these lines to see what's happening:
-# st.write(f"API Key Present: {client is not None}")
-# st.write(f"API Error: {api_error}")
-# st.write(f"Retriever Present: {retriever is not None}")
-# st.write(f"Retriever Error: {retriever_error}")
 
 # --- 10. DISPLAY CHAT HISTORY ---
 for msg in st.session_state.messages:
@@ -256,10 +254,10 @@ USER QUESTION: {prompt}
 ASSISTANT RESPONSE (be concise, professional, no emojis):"""
 
             try:
-                # Call Groq
+                # Call Groq with updated model
                 response = client.chat.completions.create(
                     messages=[{"role": "user", "content": full_prompt}],
-                    model="llama3-8b-8192",
+                    model=GROQ_MODEL,
                     temperature=0.7,
                     max_tokens=500
                 )
@@ -280,4 +278,3 @@ ASSISTANT RESPONSE (be concise, professional, no emojis):"""
                 error_msg = f"Error: {str(e)}"
                 st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": f"I encountered an error: {str(e)}. Please try again or contact us at info@dp-technologies.net"})
-
