@@ -31,34 +31,6 @@ st.markdown("""
         max-width: 100% !important;
     }
     
-    /* Compact header */
-    .chat-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 0;
-        border-bottom: 1px solid #e0e0e0;
-        margin-bottom: 10px;
-    }
-    
-    .chat-header img {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-    }
-    
-    .chat-header-text h4 {
-        margin: 0;
-        color: #002147;
-        font-size: 14px;
-    }
-    
-    .chat-header-text p {
-        margin: 0;
-        color: #666;
-        font-size: 11px;
-    }
-    
     /* Chat container */
     .stChatFloatingInputContainer {
         bottom: 0 !important;
@@ -67,7 +39,7 @@ st.markdown("""
         border-top: 1px solid #eee;
     }
     
-    /* USER MESSAGE: Right Aligned, Clean White */
+    /* USER MESSAGE: Right Aligned, Blue Background */
     [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
         flex-direction: row-reverse;
         text-align: right;
@@ -117,15 +89,6 @@ st.markdown("""
         border: 1px solid #ddd !important;
     }
     
-    .stChatInput input {
-        font-size: 14px !important;
-    }
-    
-    /* Spinner */
-    .stSpinner > div {
-        border-top-color: #002147 !important;
-    }
-    
     /* Hide sidebar completely */
     [data-testid="stSidebar"] {
         display: none !important;
@@ -144,29 +107,24 @@ st.markdown("""
         background: #c1c1c1;
         border-radius: 3px;
     }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #a1a1a1;
-    }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 3. LOAD KNOWLEDGE BASE ---
 @st.cache_resource
 def load_retriever():
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     try:
+        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         vectorstore = FAISS.load_local(
             "faiss_index", 
             embeddings, 
             allow_dangerous_deserialization=True
         )
-        return vectorstore.as_retriever(search_kwargs={"k": 4})
+        return vectorstore.as_retriever(search_kwargs={"k": 4}), None
     except Exception as e:
-        st.error(f"Knowledge base error: {e}")
-        return None
+        return None, str(e)
 
-retriever = load_retriever()
+retriever, retriever_error = load_retriever()
 
 # --- 4. PATHS ---
 logo_path = "data/logo_transparent.png"
@@ -174,11 +132,16 @@ if not os.path.exists(logo_path):
     logo_path = None
 
 # --- 5. GROQ CLIENT ---
+client = None
+api_error = None
 try:
-    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+    api_key = st.secrets.get("GROQ_API_KEY", None)
+    if api_key:
+        client = Groq(api_key=api_key)
+    else:
+        api_error = "GROQ_API_KEY not found in secrets"
 except Exception as e:
-    st.error(f"⚠️ API Configuration Error")
-    st.stop()
+    api_error = str(e)
 
 # --- 6. SYSTEM INSTRUCTIONS ---
 SYSTEM_INSTRUCTIONS = """You are "DP Assistant", the official AI Customer Service Assistant for Digital Protection, a data protection and compliance consultancy in Amman, Jordan.
@@ -208,9 +171,13 @@ SYSTEM_INSTRUCTIONS = """You are "DP Assistant", the official AI Customer Servic
 
 # --- 7. INITIALIZE CHAT ---
 def get_greeting():
-    return """Hello! 👋 Welcome to Digital Protection.
+    return """Hello! Welcome to Digital Protection.
 
-I'm your DP Assistant, here to help you with your questions.
+I'm your DP Assistant, here to help with questions about:
+- **Compliance** (GDPR, ISO 27701, CBJ)
+- **Security Assessments**
+- **Our Services**
+
 How can I assist you today?"""
 
 if "messages" not in st.session_state:
@@ -218,13 +185,11 @@ if "messages" not in st.session_state:
         {"role": "assistant", "content": get_greeting()}
     ]
 
-# --- 8. COMPACT HEADER (for embedded view) ---
-# Check if embedded via URL parameter
+# --- 8. HEADER (only if NOT embedded) ---
 query_params = st.query_params
 is_embedded = query_params.get("embed", "false").lower() == "true"
 
 if not is_embedded:
-    # Show header only if NOT embedded (direct access)
     col1, col2 = st.columns([1, 5])
     with col1:
         if logo_path:
@@ -232,19 +197,21 @@ if not is_embedded:
     with col2:
         st.markdown("### Digital Protection Support")
 
-# --- 9. DISPLAY CHAT HISTORY ---
+# --- 9. SHOW DEBUG INFO (only for troubleshooting - remove later) ---
+# Uncomment these lines to see what's happening:
+# st.write(f"API Key Present: {client is not None}")
+# st.write(f"API Error: {api_error}")
+# st.write(f"Retriever Present: {retriever is not None}")
+# st.write(f"Retriever Error: {retriever_error}")
+
+# --- 10. DISPLAY CHAT HISTORY ---
 for msg in st.session_state.messages:
     avatar = logo_path if msg["role"] == "assistant" else None
     with st.chat_message(msg["role"], avatar=avatar):
         st.markdown(msg["content"])
 
-# --- 10. HANDLE USER INPUT ---
+# --- 11. HANDLE USER INPUT ---
 if prompt := st.chat_input("Type your message..."):
-    
-    # Check retriever
-    if retriever is None:
-        st.error("⚠️ Knowledge base unavailable. Please try again later.")
-        st.stop()
     
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -253,14 +220,32 @@ if prompt := st.chat_input("Type your message..."):
     
     # Generate response
     with st.chat_message("assistant", avatar=logo_path):
+        
+        # Check for errors first
+        if api_error:
+            error_msg = f"Configuration error: {api_error}. Please contact support."
+            st.error(error_msg)
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+            st.stop()
+        
+        if client is None:
+            error_msg = "API not configured. Please contact support."
+            st.error(error_msg)
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+            st.stop()
+        
         with st.spinner("Thinking..."):
             
-            # Search knowledge base
-            try:
-                search_results = retriever.invoke(prompt)
-                context = "\n".join([doc.page_content for doc in search_results])
-            except:
-                context = ""
+            # Search knowledge base (if available)
+            context = ""
+            if retriever:
+                try:
+                    search_results = retriever.invoke(prompt)
+                    context = "\n".join([doc.page_content for doc in search_results])
+                except Exception as e:
+                    context = f"(Knowledge base search failed: {e})"
+            else:
+                context = "(Knowledge base not available)"
             
             # Build prompt
             full_prompt = f"""{SYSTEM_INSTRUCTIONS}
@@ -285,7 +270,7 @@ ASSISTANT RESPONSE (be concise, professional, no emojis):"""
                 
                 answer = response.choices[0].message.content.strip()
                 
-                # Clean up response (remove any "Dear Customer" etc.)
+                # Clean up response
                 unwanted_starts = ["Dear", "Subject:", "Hello,", "Hi,"]
                 for start in unwanted_starts:
                     if answer.startswith(start):
@@ -295,8 +280,7 @@ ASSISTANT RESPONSE (be concise, professional, no emojis):"""
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 
             except Exception as e:
-                error_msg = "I apologize, but I'm having trouble connecting right now. Please try again or contact us directly at info@dp-technologies.net"
-                st.markdown(error_msg)
-
-                st.session_state.messages.append({"role": "assistant", "content": error_msg})
-
+                # Show actual error for debugging
+                error_msg = f"Error: {str(e)}"
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": f"I encountered an error: {str(e)}. Please try again or contact us at info@dp-technologies.net"})
