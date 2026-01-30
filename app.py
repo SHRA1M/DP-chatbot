@@ -211,10 +211,6 @@ def get_greeting():
     return """Hello! 👋 Welcome to Digital Protection.
 
 I'm your DP Assistant, here to help with questions about:
-• **Compliance** (GDPR, ISO 27701, CBJ)
-• **Security Assessments**
-• **Our Services**
-
 How can I assist you today?"""
 
 if "messages" not in st.session_state:
@@ -301,4 +297,5 @@ ASSISTANT RESPONSE (be concise, professional, no emojis):"""
             except Exception as e:
                 error_msg = "I apologize, but I'm having trouble connecting right now. Please try again or contact us directly at info@dp-technologies.net"
                 st.markdown(error_msg)
+
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
