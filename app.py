@@ -173,11 +173,7 @@ SYSTEM_INSTRUCTIONS = """You are "DP Assistant", the official AI Customer Servic
 def get_greeting():
     return """Hello! Welcome to Digital Protection.
 
-I'm your DP Assistant, here to help with questions about:
-- **Compliance** (GDPR, ISO 27701, CBJ)
-- **Security Assessments**
-- **Our Services**
-
+I'm your DP Assistant, here to help with your questions.
 How can I assist you today?"""
 
 if "messages" not in st.session_state:
@@ -284,3 +280,4 @@ ASSISTANT RESPONSE (be concise, professional, no emojis):"""
                 error_msg = f"Error: {str(e)}"
                 st.error(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": f"I encountered an error: {str(e)}. Please try again or contact us at info@dp-technologies.net"})
+
