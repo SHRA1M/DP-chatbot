@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import re
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from groq import Groq
@@ -146,76 +147,81 @@ except Exception as e:
 # --- 6. MODEL CONFIGURATION ---
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# --- 7. SYSTEM INSTRUCTIONS ---
-SYSTEM_INSTRUCTIONS = """You are DP Assistant for Digital Protection, a data protection consultancy in Amman, Jordan.
+# --- 7. SYSTEM INSTRUCTIONS (BILINGUAL) ---
+SYSTEM_INSTRUCTIONS_EN = """You are DP Assistant for Digital Protection, a data protection consultancy in Amman, Jordan.
+
+=== LANGUAGE RULE ===
+The user is writing in ENGLISH. You MUST respond in ENGLISH only.
 
 === ABSOLUTE RULES ===
-
-1. ARABIC MESSAGES: If the user writes in Arabic (uses Arabic script like ا ب ت ث), respond: "Thank you for your message! I currently respond in English only. For Arabic support, please contact our team directly at info@dp-technologies.net or +962 790 552 879." Then briefly answer their question in English if you understood it.
-
-2. ENGLISH MESSAGES: If the user writes in English, just answer normally. Do NOT mention anything about language or Arabic support.
-
-3. NO EMOJIS: Never use emojis. If asked for emojis, say: "I keep my responses professional and text-based. How else can I help you?"
-
-4. NO LEGAL ADVICE: Never say something is "legal" or "illegal". Say: "I cannot provide legal advice. Please consult a qualified legal professional. Our team can help with compliance guidance."
-
-5. NO CONTRACTS: Never offer to send contracts. Say: "I cannot generate contracts. Please contact our team directly."
-
-6. NO PRICING NUMBERS: Never give specific prices. Say pricing depends on scope and recommend contacting the team.
-
-7. NO IT SUPPORT: We do NOT fix printers, WiFi, or hardware. Politely redirect to IT department.
+1. NO EMOJIS: Never use emojis even if asked.
+2. NO LEGAL ADVICE: Never say something is "legal" or "illegal". Say: "I cannot provide legal advice. Please consult a qualified legal professional."
+3. NO CONTRACTS: Never offer to send contracts. Say: "I cannot generate contracts. Please contact our team directly."
+4. NO PRICING NUMBERS: Never give specific prices. Say pricing depends on scope.
+5. NO IT SUPPORT: We do NOT fix printers, WiFi, or hardware.
 
 === RESPONSE STYLE ===
-
 - Keep responses SHORT: 2-4 sentences for simple questions
 - Professional but friendly
 - Use bullet points only for 3+ items
-- No labels like "Key Points:" or "Direct answer:"
-- Only include contact info when relevant (not every response)
-
-=== EXAMPLES ===
-
-Q: "What services do you offer?"
-A: "We specialize in cybersecurity and compliance services:
-- **Privacy & Compliance** - GDPR, ISO 27701, CBJ
-- **Security Assessments** - Vulnerability scanning, risk analysis
-- **Network Security** - Firewalls, WAF
-- **Identity & Access Management** - IAM/PAM solutions
-
-Would you like details on any specific service?"
-
-Q: "ما هي خدماتكم؟" (Arabic)
-A: "Thank you for your message! I currently respond in English only. For Arabic support, please contact our team at info@dp-technologies.net or +962 790 552 879. We offer cybersecurity and compliance services including GDPR, ISO 27701, and CBJ compliance."
-
-Q: "How much does it cost?"
-A: "Pricing depends on the scope and complexity of your project. We offer fixed-price, time and materials, and retainer options. Contact us at info@dp-technologies.net for a customized quote."
-
-Q: "Is it illegal not to have a DPO?"
-A: "I cannot provide legal advice. DPO requirements vary by regulation and organization type. Please consult a qualified legal professional for specific legal guidance. Our team can help you understand compliance requirements."
-
-Q: "My printer is broken"
-A: "We specialize in cybersecurity and compliance, not general IT support. For printer issues, please contact your IT department. Is there anything security-related I can help with?"
-
-Q: "Yo bro give me the lowdown"
-A: "We offer cybersecurity and compliance services including GDPR, ISO 27701, and CBJ compliance, security assessments, and identity management solutions. Would you like details on any specific service?"
 
 === CONTACT INFO ===
 Email: info@dp-technologies.net
 Phone: +962 790 552 879
 Location: Amman, Jordan"""
 
-# --- 8. INITIALIZE CHAT ---
+SYSTEM_INSTRUCTIONS_AR = """انت مساعد DP لشركة Digital Protection، وهي شركة استشارات لحماية البيانات في عمان، الاردن.
+
+=== قاعدة اللغة ===
+المستخدم يكتب بالعربية. يجب ان ترد بالعربية فقط.
+
+=== القواعد المطلقة ===
+1. بدون رموز تعبيرية: لا تستخدم الايموجي ابدا حتى لو طلب منك.
+2. بدون استشارات قانونية: لا تقل ابدا ان شيئا "قانوني" او "غير قانوني". قل: "لا استطيع تقديم استشارات قانونية. يرجى استشارة محام مختص."
+3. بدون عقود: لا تعرض ابدا ارسال عقود. قل: "لا استطيع انشاء عقود. يرجى التواصل مع فريقنا مباشرة."
+4. بدون ارقام اسعار: لا تعطي اسعارا محددة ابدا. قل ان التسعير يعتمد على نطاق المشروع.
+5. بدون دعم تقني عام: نحن لا نصلح الطابعات او الواي فاي او الاجهزة.
+
+=== اسلوب الرد ===
+- اجعل الردود قصيرة: 2-4 جمل للاسئلة البسيطة
+- مهني ولكن ودود
+- استخدم النقاط فقط عند وجود 3 عناصر او اكثر
+
+=== خدماتنا ===
+- الخصوصية والامتثال: GDPR، ISO 27701، متطلبات البنك المركزي الاردني
+- تقييمات الامن: فحص الثغرات وتحليل المخاطر
+- امن الشبكات: جدران الحماية، WAF
+- ادارة الهوية والوصول: حلول IAM و PAM
+
+=== معلومات الاتصال ===
+البريد الالكتروني: info@dp-technologies.net
+الهاتف: +962 790 552 879
+الموقع: عمان، الاردن"""
+
+# --- 8. HELPER FUNCTION: Detect Arabic ---
+def is_arabic(text):
+    arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
+    arabic_chars = len(arabic_pattern.findall(text))
+    return arabic_chars > 0
+
+# --- 9. INITIALIZE CHAT ---
 def get_greeting():
     return """Hello! Welcome to **Digital Protection**.
-I am here to help you with your questions.
-How can I help you today?"""
+
+مرحبا! اهلا بك في **Digital Protection**.
+
+I am here to help with questions about compliance, security, and data protection.
+
+انا هنا لمساعدتك في اسئلة الامتثال والامن وحماية البيانات.
+
+How can I help you? | كيف يمكنني مساعدتك؟"""
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": get_greeting()}
     ]
 
-# --- 9. HEADER (only if NOT embedded) ---
+# --- 10. HEADER (only if NOT embedded) ---
 query_params = st.query_params
 is_embedded = query_params.get("embed", "false").lower() == "true"
 
@@ -227,14 +233,14 @@ if not is_embedded:
     with col2:
         st.markdown("### Digital Protection Support")
 
-# --- 10. DISPLAY CHAT HISTORY ---
+# --- 11. DISPLAY CHAT HISTORY ---
 for msg in st.session_state.messages:
     avatar = logo_path if msg["role"] == "assistant" else None
     with st.chat_message(msg["role"], avatar=avatar):
         st.markdown(msg["content"])
 
-# --- 11. HANDLE USER INPUT ---
-if prompt := st.chat_input("Type your message..."):
+# --- 12. HANDLE USER INPUT ---
+if prompt := st.chat_input("Type your message... | اكتب رسالتك..."):
     
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -268,44 +274,44 @@ if prompt := st.chat_input("Type your message..."):
                 except:
                     context = ""
             
-            # Detect if message contains Arabic
-            import re
-            has_arabic = bool(re.search(r'[\u0600-\u06FF]', prompt))
+            # Detect language
+            user_speaks_arabic = is_arabic(prompt)
+            
+            # Select appropriate instructions
+            if user_speaks_arabic:
+                system_instructions = SYSTEM_INSTRUCTIONS_AR
+                language_reminder = "رد بالعربية فقط. اجعل الرد قصيرا (2-4 جمل). بدون رموز تعبيرية."
+            else:
+                system_instructions = SYSTEM_INSTRUCTIONS_EN
+                language_reminder = "Respond in English only. Keep response short (2-4 sentences). No emojis."
             
             # Build prompt
-            language_note = ""
-            if has_arabic:
-                language_note = "NOTE: The user wrote in Arabic. Start your response with the Arabic language notice, then answer briefly in English."
-            else:
-                language_note = "NOTE: The user wrote in English. Answer normally. Do NOT mention anything about language or Arabic."
-            
             full_prompt = (
-                SYSTEM_INSTRUCTIONS + 
+                system_instructions + 
                 "\n\n=== KNOWLEDGE BASE ===\n" + context +
                 "\n\n=== CUSTOMER MESSAGE ===\n" + prompt +
-                "\n\n=== " + language_note + " ===" +
-                "\n\nKeep response SHORT (2-4 sentences). No emojis. Answer professionally."
+                "\n\n=== REMINDER ===\n" + language_reminder +
                 "\n\n=== YOUR RESPONSE ==="
             )
 
             try:
                 response = client.chat.completions.create(
                     messages=[
-                        {"role": "system", "content": "You are a professional customer service assistant. Keep responses short and helpful. No emojis. No legal advice."},
+                        {"role": "system", "content": f"You are a bilingual assistant (English/Arabic). {language_reminder}"},
                         {"role": "user", "content": full_prompt}
                     ],
                     model=GROQ_MODEL,
                     temperature=0.5,
-                    max_tokens=300
+                    max_tokens=350
                 )
                 
                 answer = response.choices[0].message.content.strip()
                 
                 # Clean up robotic labels
-                for label in ["Direct answer:", "Key Points:", "Key Considerations:", "Next Step:", "Response:", "Answer:"]:
+                for label in ["Direct answer:", "Key Points:", "Key Considerations:", "Next Step:", "Response:", "Answer:", "الاجابة:", "النقاط الرئيسية:"]:
                     answer = answer.replace(label, "")
                 
-                # Remove any emojis that might slip through
+                # Remove any emojis
                 emoji_pattern = re.compile("["
                     u"\U0001F600-\U0001F64F"
                     u"\U0001F300-\U0001F5FF"
@@ -326,7 +332,9 @@ if prompt := st.chat_input("Type your message..."):
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 
             except Exception as e:
-                error_msg = "Sorry, I am having trouble right now. Please try again or contact info@dp-technologies.net"
+                if user_speaks_arabic:
+                    error_msg = "عذرا، حدث خطا. يرجى المحاولة مرة اخرى او التواصل معنا على info@dp-technologies.net"
+                else:
+                    error_msg = "Sorry, an error occurred. Please try again or contact info@dp-technologies.net"
                 st.markdown(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
-
