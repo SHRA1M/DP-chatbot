@@ -168,7 +168,7 @@ SYSTEM_INSTRUCTIONS_AR = """انت مساعد DP لشركة Digital Protection �
 2. بدون استشارات قانونية - قل "لا استطيع تقديم استشارات قانونية. يرجى استشارة محام مختص."
 3. بدون عقود - قل "لا استطيع انشاء عقود. يرجى التواصل مع فريقنا."
 4. بدون اسعار محددة - قل التسعير يعتمد على نطاق المشروع
-5. بدون دعم تقني للطابعات والواي فاي
+5. ممنوع منعا باتا تقديم دعم تقني للطابعات (Printers) او الواي فاي (WiFi) او الاجهزة. قل "عذرا، هذا خارج نطاق خدماتنا."
 
 الاسلوب: ردود قصيرة (2-4 جمل). مهني وودود.
 
@@ -181,31 +181,34 @@ SYSTEM_INSTRUCTIONS_AR = """انت مساعد DP لشركة Digital Protection �
 التواصل: info@dp-technologies.net | +962 790 552 879 | عمان، الاردن"""
 
 # --- 9. HELPER FUNCTIONS ---
+# Compile regex patterns once globally
+ARABIC_PATTERN = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
+EMOJI_PATTERN = re.compile("["
+    u"\U0001F600-\U0001F64F"
+    u"\U0001F300-\U0001F5FF"
+    u"\U0001F680-\U0001F6FF"
+    u"\U0001F1E0-\U0001F1FF"
+    u"\U00002702-\U000027B0"
+    u"\U000024C2-\U0001F251"
+    "]+", flags=re.UNICODE)
+LABELS_TO_REMOVE = ["Direct answer:", "Key Points:", "Key Considerations:", "Next Step:", 
+          "Response:", "Answer:", "الاجابة:", "النقاط الرئيسية:", "الخطوة التالية:"]
+
 def is_arabic(text):
-    arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
-    return bool(arabic_pattern.search(text))
+    return bool(ARABIC_PATTERN.search(text))
 
 def clean_response(answer, is_arabic_response=False):
     """Clean up the response text"""
     # Remove robotic labels
-    labels = ["Direct answer:", "Key Points:", "Key Considerations:", "Next Step:", 
-              "Response:", "Answer:", "الاجابة:", "النقاط الرئيسية:", "الخطوة التالية:"]
-    for label in labels:
-        answer = answer.replace(label, "")
+    for label in LABELS_TO_REMOVE:
+        if label in answer:
+            answer = answer.replace(label, "")
     
     # Remove emojis
-    emoji_pattern = re.compile("["
-        u"\U0001F600-\U0001F64F"
-        u"\U0001F300-\U0001F5FF"
-        u"\U0001F680-\U0001F6FF"
-        u"\U0001F1E0-\U0001F1FF"
-        u"\U00002702-\U000027B0"
-        u"\U000024C2-\U0001F251"
-        "]+", flags=re.UNICODE)
-    answer = emoji_pattern.sub('', answer)
+    answer = EMOJI_PATTERN.sub('', answer)
     
     # Clean whitespace
-    while "\n\n\n" in answer:
+    if "\n\n\n" in answer:
         answer = answer.replace("\n\n\n", "\n\n")
     
     answer = answer.strip()
@@ -216,35 +219,19 @@ def clean_response(answer, is_arabic_response=False):
     
     return answer
 
-def call_groq_with_retry(client, messages, model, max_retries=3):
-    """Call Groq API with retry logic"""
-    last_error = None
+def get_fallback_response(prompt, is_arabic_lang):
+    """Get a fallback response when API fails"""
+    prompt_lower = prompt.lower()
+    fallback = FALLBACK_AR if is_arabic_lang else FALLBACK_EN
     
-    for attempt in range(max_retries):
-        try:
-            response = client.chat.completions.create(
-                messages=messages,
-                model=model,
-                temperature=0.5,
-                max_tokens=350,
-                timeout=30  # 30 second timeout
-            )
-            return response, None
-        except Exception as e:
-            last_error = str(e)
-            
-            # If rate limited, wait before retry
-            if "rate" in last_error.lower() or "limit" in last_error.lower():
-                time.sleep(2 * (attempt + 1))  # Exponential backoff: 2s, 4s, 6s
-            elif "timeout" in last_error.lower():
-                time.sleep(1)
-            else:
-                # For other errors, try backup model on second attempt
-                if attempt == 1 and model != BACKUP_MODEL:
-                    model = BACKUP_MODEL
-                time.sleep(1)
-    
-    return None, last_error
+    if any(word in prompt_lower for word in ["service", "خدم", "offer", "تقدم"]):
+        return fallback["services"]
+    elif any(word in prompt_lower for word in ["price", "cost", "سعر", "تكلف", "كم"]):
+        return fallback["pricing"]
+    elif any(word in prompt_lower for word in ["where", "location", "اين", "موقع"]):
+        return fallback["location"]
+    else:
+        return fallback["default"]
 
 # --- 10. FALLBACK RESPONSES ---
 FALLBACK_EN = {
@@ -260,20 +247,6 @@ FALLBACK_AR = {
     "location": "نحن في عمان، الاردن. تواصل معنا على info@dp-technologies.net او +962 790 552 879",
     "default": "شكرا لرسالتك. للمساعدة التفصيلية، يرجى التواصل مع فريقنا على info@dp-technologies.net او +962 790 552 879"
 }
-
-def get_fallback_response(prompt, is_arabic_lang):
-    """Get a fallback response when API fails"""
-    prompt_lower = prompt.lower()
-    fallback = FALLBACK_AR if is_arabic_lang else FALLBACK_EN
-    
-    if any(word in prompt_lower for word in ["service", "خدم", "offer", "تقدم"]):
-        return fallback["services"]
-    elif any(word in prompt_lower for word in ["price", "cost", "سعر", "تكلف", "كم"]):
-        return fallback["pricing"]
-    elif any(word in prompt_lower for word in ["where", "location", "اين", "موقع"]):
-        return fallback["location"]
-    else:
-        return fallback["default"]
 
 # --- 11. INITIALIZE SESSION STATE ---
 if "messages" not in st.session_state:
@@ -328,6 +301,12 @@ else:
                 st.session_state.greeting_shown = False
                 st.rerun()
 
+# --- 12.5 ERROR NOTIFICATIONS ---
+if retriever_error:
+    st.error(f"⚠️ Knowledge Base Error: {retriever_error}. The bot will answer without context.")
+if api_error:
+    st.error(f"⚠️ API Error: {api_error}. Please check your API key.")
+
 # --- 13. SHOW GREETING ---
 if not st.session_state.greeting_shown:
     if st.session_state.ui_language == "ar":
@@ -342,29 +321,16 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=avatar):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-# --- 15. CHAT INPUT ---
+# --- 15. CHAT INPUT (ROBUST VERSION) ---
 input_placeholder = "اكتب رسالتك..." if st.session_state.ui_language == "ar" else "Type your message..."
 
 if prompt := st.chat_input(input_placeholder):
-    
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
     with st.chat_message("assistant", avatar=logo_path):
-        # Placeholder for the streaming effect
         response_placeholder = st.empty()
-        full_response = ""
-        
-        # Check for configuration errors
-        if api_error or client is None:
-            is_ar = is_arabic(prompt) or st.session_state.ui_language == "ar"
-            fallback = get_fallback_response(prompt, is_ar)
-            if is_ar:
-                fallback = f'<div class="arabic-text">{fallback}</div>'
-            response_placeholder.markdown(fallback, unsafe_allow_html=True)
-            st.session_state.messages.append({"role": "assistant", "content": fallback})
-            st.stop()
         
         # 1. Search knowledge base
         context = ""
@@ -372,51 +338,82 @@ if prompt := st.chat_input(input_placeholder):
             try:
                 search_results = retriever.invoke(prompt)
                 context = "\n".join([doc.page_content for doc in search_results])
-            except:
-                context = ""
+                print(f"DEBUG: Found {len(search_results)} chunks for query.")
+            except Exception as e:
+                print(f"DEBUG: Retriever failed during invoke: {e}")
         
-        # 2. Detect language
-        user_speaks_arabic = is_arabic(prompt) or st.session_state.ui_language == "ar"
+        # 2. Check language
+        user_is_ar = is_arabic(prompt) or st.session_state.ui_language == "ar"
+        system_prompt = SYSTEM_INSTRUCTIONS_AR if user_is_ar else SYSTEM_INSTRUCTIONS_EN
+
+        # 3. Call API with Fallback Logic
+        stream = None
+        used_model = GROQ_MODEL
         
-        # 3. Select instructions
-        if user_speaks_arabic:
-            system_instructions = SYSTEM_INSTRUCTIONS_AR
-            language_reminder = "رد بالعربية فقط. ردود قصيرة. بدون رموز تعبيرية."
-        else:
-            system_instructions = SYSTEM_INSTRUCTIONS_EN
-            language_reminder = "Respond in English only. Keep it short. No emojis."
-        
-        # 4. Stream from Groq
         try:
+            # Try Primary Model (70b)
             stream = client.chat.completions.create(
                 messages=[
-                    {"role": "system", "content": f"Bilingual assistant. {language_reminder}\n\n{system_instructions}\n\nKNOWLEDGE:\n{context}"},
+                    {"role": "system", "content": f"{system_prompt}\n\nUSE THIS CONTEXT TO ANSWER:\n{context}"},
                     {"role": "user", "content": prompt}
                 ],
                 model=GROQ_MODEL,
-                temperature=0.5,
-                max_tokens=350,
-                stream=True,  # ENABLE STREAMING
+                stream=True,
             )
-            
-            for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    full_response += chunk.choices[0].delta.content
-                    # Clean the current chunk and display
-                    display_text = clean_response(full_response, user_speaks_arabic)
-                    response_placeholder.markdown(display_text + "▌", unsafe_allow_html=True)
-            
-            # Final clean display without the cursor
-            final_answer = clean_response(full_response, user_speaks_arabic)
-            response_placeholder.markdown(final_answer, unsafe_allow_html=True)
-            st.session_state.messages.append({"role": "assistant", "content": final_answer})
-            st.session_state.error_count = 0
-
         except Exception as e:
-            # Fallback if Stream fails
-            st.session_state.error_count += 1
-            fallback = get_fallback_response(prompt, user_speaks_arabic)
-            if user_speaks_arabic:
-                fallback = f'<div class="arabic-text">{fallback}</div>'
-            response_placeholder.markdown(fallback, unsafe_allow_html=True)
-            st.session_state.messages.append({"role": "assistant", "content": fallback})
+            print(f"Primary model failed: {e}")
+            # If rate limited or other error, try Backup Model (8b)
+            try:
+                if "rate" in str(e).lower() and "limit" in str(e).lower():
+                     error_msg = "Daily limit reached for smart model. Switching to standard model."
+                else:
+                     error_msg = "Smart model unavailable. Switching to standard model."
+                
+                print(f"Switching to backup: {error_msg}")
+                st.toast(f"⚠️ {error_msg}", icon="⚠️")
+                
+                stream = client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": f"{system_prompt}\n\nUSE THIS CONTEXT TO ANSWER:\n{context}"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    model=BACKUP_MODEL,
+                    stream=True,
+                )
+                used_model = BACKUP_MODEL
+            except Exception as e2:
+                print(f"Backup model also failed: {e2}")
+                stream = None
+
+        # 4. Process Stream or Show Static Fallback
+        if stream:
+            try:
+                full_response = ""
+                last_update_time = time.time()
+                
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        full_response += chunk.choices[0].delta.content
+                        current_time = time.time()
+                        if current_time - last_update_time > 0.05:
+                            display_text = clean_response(full_response, user_is_ar)
+                            response_placeholder.markdown(display_text + "▌", unsafe_allow_html=True)
+                            last_update_time = current_time
+                
+                final_answer = clean_response(full_response, user_is_ar)
+                
+                # Append disclaimer if using backup model
+                # if used_model == BACKUP_MODEL:
+                #      final_answer += "\n\n_Note: Using standard model due to high traffic._"
+                
+                response_placeholder.markdown(final_answer, unsafe_allow_html=True)
+                st.session_state.messages.append({"role": "assistant", "content": final_answer})
+            
+            except Exception as e:
+                 print(f"Stream processing error: {e}")
+                 fallback = get_fallback_response(prompt, user_is_ar)
+                 response_placeholder.markdown(fallback)
+        else:
+            # If both models failed
+            fallback = get_fallback_response(prompt, user_is_ar)
+            response_placeholder.markdown(fallback)
