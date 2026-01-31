@@ -352,69 +352,71 @@ if prompt := st.chat_input(input_placeholder):
         st.markdown(prompt)
     
     with st.chat_message("assistant", avatar=logo_path):
+        # Placeholder for the streaming effect
+        response_placeholder = st.empty()
+        full_response = ""
         
         # Check for configuration errors
         if api_error or client is None:
-            # Use fallback response
             is_ar = is_arabic(prompt) or st.session_state.ui_language == "ar"
             fallback = get_fallback_response(prompt, is_ar)
             if is_ar:
                 fallback = f'<div class="arabic-text">{fallback}</div>'
-            st.markdown(fallback, unsafe_allow_html=True)
+            response_placeholder.markdown(fallback, unsafe_allow_html=True)
             st.session_state.messages.append({"role": "assistant", "content": fallback})
             st.stop()
         
-        with st.spinner(""):
-            
-            # Search knowledge base
-            context = ""
-            if retriever:
-                try:
-                    search_results = retriever.invoke(prompt)
-                    context = "\n".join([doc.page_content for doc in search_results])
-                except:
-                    context = ""
-            
-            # Detect language
-            user_speaks_arabic = is_arabic(prompt) or st.session_state.ui_language == "ar"
-            
-            # Select instructions
-            if user_speaks_arabic:
-                system_instructions = SYSTEM_INSTRUCTIONS_AR
-                language_reminder = "رد بالعربية فقط. ردود قصيرة. بدون رموز تعبيرية."
-            else:
-                system_instructions = SYSTEM_INSTRUCTIONS_EN
-                language_reminder = "Respond in English only. Keep it short. No emojis."
-            
-            full_prompt = (
-                system_instructions + 
-                "\n\nKNOWLEDGE BASE:\n" + context +
-                "\n\nCUSTOMER: " + prompt +
-                "\n\nREMINDER: " + language_reminder
-            )
-
-            # Call API with retry
-            response, error = call_groq_with_retry(
-                client,
+        # 1. Search knowledge base
+        context = ""
+        if retriever:
+            try:
+                search_results = retriever.invoke(prompt)
+                context = "\n".join([doc.page_content for doc in search_results])
+            except:
+                context = ""
+        
+        # 2. Detect language
+        user_speaks_arabic = is_arabic(prompt) or st.session_state.ui_language == "ar"
+        
+        # 3. Select instructions
+        if user_speaks_arabic:
+            system_instructions = SYSTEM_INSTRUCTIONS_AR
+            language_reminder = "رد بالعربية فقط. ردود قصيرة. بدون رموز تعبيرية."
+        else:
+            system_instructions = SYSTEM_INSTRUCTIONS_EN
+            language_reminder = "Respond in English only. Keep it short. No emojis."
+        
+        # 4. Stream from Groq
+        try:
+            stream = client.chat.completions.create(
                 messages=[
-                    {"role": "system", "content": f"Bilingual assistant. {language_reminder}"},
-                    {"role": "user", "content": full_prompt}
+                    {"role": "system", "content": f"Bilingual assistant. {language_reminder}\n\n{system_instructions}\n\nKNOWLEDGE:\n{context}"},
+                    {"role": "user", "content": prompt}
                 ],
-                model=GROQ_MODEL
+                model=GROQ_MODEL,
+                temperature=0.5,
+                max_tokens=350,
+                stream=True,  # ENABLE STREAMING
             )
             
-            if response:
-                # Success - reset error count
-                st.session_state.error_count = 0
-                answer = response.choices[0].message.content.strip()
-                answer = clean_response(answer, user_speaks_arabic)
-                st.markdown(answer, unsafe_allow_html=True)
-                st.session_state.messages.append({"role": "assistant", "content": answer})
-            else:
-                # API failed - use fallback
-                st.session_state.error_count += 1
-                fallback = get_fallback_response(prompt, user_speaks_arabic)
-                if user_speaks_arabic:
-                    fallback = f'<div class="arabic-text">{fallback}</div>'
-                st.markdown(fallback, unsafe_allow_html=True)
-                st.session_state.messages.append({"role": "assistant", "content": fallback})
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    full_response += chunk.choices[0].delta.content
+                    # Clean the current chunk and display
+                    display_text = clean_response(full_response, user_speaks_arabic)
+                    response_placeholder.markdown(display_text + "▌", unsafe_allow_html=True)
+            
+            # Final clean display without the cursor
+            final_answer = clean_response(full_response, user_speaks_arabic)
+            response_placeholder.markdown(final_answer, unsafe_allow_html=True)
+            st.session_state.messages.append({"role": "assistant", "content": final_answer})
+            st.session_state.error_count = 0
+
+        except Exception as e:
+            # Fallback if Stream fails
+            st.session_state.error_count += 1
+            fallback = get_fallback_response(prompt, user_speaks_arabic)
+            if user_speaks_arabic:
+                fallback = f'<div class="arabic-text">{fallback}</div>'
+            response_placeholder.markdown(fallback, unsafe_allow_html=True)
+            st.session_state.messages.append({"role": "assistant", "content": fallback})
