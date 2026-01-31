@@ -207,7 +207,6 @@ Location: Amman, Jordan"""
 # --- 8. INITIALIZE CHAT ---
 def get_greeting():
     return """Hello! Welcome to **Digital Protection**.
-
 I am here to help you with your questions.
 How can I help you today?"""
 
@@ -330,3 +329,4 @@ if prompt := st.chat_input("Type your message..."):
                 error_msg = "Sorry, I am having trouble right now. Please try again or contact info@dp-technologies.net"
                 st.markdown(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
+
