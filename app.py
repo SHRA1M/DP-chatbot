@@ -198,9 +198,7 @@ RULES:
 # --- 8. INITIALIZE CHAT ---
 def get_greeting():
     return """Hello! Welcome to **Digital Protection**.
-
-I am here to help with questions about compliance, security, and data protection.
-
+I am here to help you with your questions.
 What can I help you with?"""
 
 if "messages" not in st.session_state:
@@ -309,3 +307,4 @@ if prompt := st.chat_input("Type your message..."):
                 error_msg = "Sorry, I am having trouble right now. Please try again or contact info@dp-technologies.net"
                 st.markdown(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
+
