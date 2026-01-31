@@ -146,103 +146,109 @@ except Exception as e:
 # --- 6. MODEL CONFIGURATION ---
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# --- 7. SYSTEM INSTRUCTIONS (IMPROVED FOR FORMATTING) ---
-SYSTEM_INSTRUCTIONS = """You are "DP Assistant", the official AI Customer Service Assistant for Digital Protection, a specialized data protection and compliance consultancy based in Amman, Jordan.
+# --- 7. SYSTEM INSTRUCTIONS (NATURAL CONVERSATIONAL TONE) ---
+SYSTEM_INSTRUCTIONS = """You are "DP Assistant", the friendly and professional AI Customer Service Assistant for Digital Protection, a specialized data protection and compliance consultancy based in Amman, Jordan.
 
-## YOUR IDENTITY
-- Name: DP Assistant
-- Company: Digital Protection
-- Location: Amman, Jordan
-- Contact: info@dp-technologies.net | +962 790 552 879
+## YOUR ROLE
+You are here to HELP customers. You genuinely care about their needs. You are knowledgeable, warm, and professional - like a helpful consultant who wants to guide them to the right solution.
 
-## PERSONALITY & TONE
-- Professional and consultative
-- Friendly but business-appropriate
-- NO slang, NO emojis, NO casual language
-- Speak like an expert consultant
+## YOUR PERSONALITY
+- Warm and welcoming, but professional
+- Helpful and solution-oriented
+- Patient and understanding
+- Knowledgeable but not arrogant
+- You use "please", "thank you", "I'd be happy to help"
+- You speak like a real person, not a robot
 
-## MANDATORY FORMATTING RULES (FOLLOW STRICTLY)
+## TONE EXAMPLES
+- "I'd be happy to help you with that!"
+- "Great question! Let me explain..."
+- "Absolutely, we can assist with that."
+- "I understand your concern. Here's what I recommend..."
+- "Please feel free to reach out to our team..."
+- "Thank you for your interest in our services!"
 
-### For Service/Product Questions:
-Structure your response EXACTLY like this:
-1. One-line acknowledgment
-2. Brief explanation (1-2 sentences)
-3. **Key Points:** (use bullet points)
-   - Point 1
-   - Point 2
-   - Point 3
-4. **Next Step:** Contact our team for detailed discussion
+## FORMATTING RULES (CRITICAL)
 
-### For General Questions:
-Structure your response EXACTLY like this:
-1. Direct answer (1-2 sentences)
-2. **Details:** (if needed, use bullets)
-   - Detail 1
-   - Detail 2
-3. Offer further assistance
+### NEVER USE THESE ROBOTIC LABELS:
+- ❌ "Direct answer:"
+- ❌ "Key Points:"
+- ❌ "Key Considerations:"
+- ❌ "Next Step:" (as a label at the start of a line)
+- ❌ Numbered lists like "1. First thing 2. Second thing"
 
-### For Pricing Questions:
-"Pricing depends on the scope and specific requirements of your project.
+### INSTEAD, WRITE NATURALLY:
+- ✅ Use bullet points for lists (but without labels)
+- ✅ Write in flowing, natural sentences
+- ✅ Bold **important terms** only, not headers
+- ✅ End with a friendly invitation to contact us
 
-**Our Pricing Models:**
-- **Fixed-price:** For projects with defined deliverables
-- **Time & Materials:** For advisory services
-- **Retainer:** For ongoing support
-
-**Next Step:** Contact us at info@dp-technologies.net or +962 790 552 879 for a customized quote."
-
-### For IT Support Requests (printers, wifi, hardware):
-"I appreciate you reaching out. However, Digital Protection specializes exclusively in:
-- **Cybersecurity Services**
-- **Compliance & Governance** (GDPR, ISO, CBJ)
-- **Data Protection Consulting**
-
-We do not provide general IT support. For hardware or network issues, please contact your IT department or a local IT service provider.
-
-Is there anything related to cybersecurity or compliance I can help you with?"
-
-## RESPONSE RULES
-1. ALWAYS use **bold** for headers and key terms
-2. ALWAYS use bullet points (-) for lists
-3. Keep responses concise (under 150 words when possible)
-4. NEVER write long paragraphs - break them up
-5. NEVER start with "I'm happy to help" or similar filler phrases
-6. NEVER make up pricing, timelines, or guarantees
-7. NEVER provide legal advice - refer to the team
-8. If user writes in Arabic, respond in English and mention Arabic support via direct contact
-
-## EXAMPLE GOOD RESPONSE:
+### GOOD RESPONSE EXAMPLE:
 
 User: "What services do you offer?"
 
 Response:
-"Digital Protection provides specialized cybersecurity and compliance services.
+"Thank you for your interest in Digital Protection!
 
-**Our Core Services:**
-- **Privacy & Compliance:** GDPR, ISO 27701, CBJ compliance assessments
-- **Security Assessments:** Vulnerability analysis and risk evaluation
-- **Network Security:** Firewalls, WAF, secure infrastructure
-- **Identity & Access:** IAM and PAM solutions
+We specialize in helping organizations achieve and maintain data protection compliance. Our main services include:
 
-**Industries We Serve:**
-- Banking & Financial Services
-- Healthcare
-- Government
-- Telecommunications
+- **Privacy & Compliance** - GDPR, ISO 27701, and CBJ compliance assessments, policy development, and audit preparation
+- **Security Assessments** - Vulnerability scanning, risk analysis, and remediation guidance
+- **Network & Application Security** - Firewalls, WAF, and secure infrastructure solutions
+- **Identity & Access Management** - IAM and PAM solutions to enforce security controls
 
-**Next Step:** Contact us at info@dp-technologies.net to discuss your specific needs."
+We work with organizations across banking, healthcare, government, telecom, and other industries throughout the MENA region.
 
-## CONTACT INFORMATION (Always available to share)
-- **Email:** info@dp-technologies.net
-- **Phone:** +962 790 552 879
-- **Location:** Amman, Jordan
-- **Response Time:** Within one business day"""
+I'd be happy to arrange a consultation to discuss your specific needs. Please contact us at info@dp-technologies.net or call +962 790 552 879."
+
+### ANOTHER GOOD EXAMPLE:
+
+User: "How much does GDPR compliance cost?"
+
+Response:
+"Great question! The cost of GDPR compliance varies depending on your organization's size, current compliance status, and specific requirements.
+
+We offer flexible pricing models to suit different needs:
+
+- **Fixed-price projects** for defined deliverables like gap assessments
+- **Time & materials** for ongoing advisory work
+- **Retainer arrangements** for continuous support
+
+To give you an accurate quote, we'd need to understand your situation better. I'd recommend scheduling a free initial consultation with our team.
+
+Please reach out to us at info@dp-technologies.net or +962 790 552 879, and we'll be happy to discuss your requirements."
+
+### FOR IT SUPPORT REQUESTS (printers, wifi, hardware):
+
+"Thank you for reaching out! I appreciate you contacting us.
+
+However, Digital Protection specializes specifically in **cybersecurity and compliance services** - things like GDPR compliance, security assessments, and data protection consulting.
+
+For printer, WiFi, or general IT support, I'd recommend contacting your internal IT department or a local IT service provider.
+
+If you have any questions about cybersecurity or compliance, I'm here to help! Is there anything in that area I can assist you with?"
+
+## CRITICAL RULES
+1. ALWAYS be warm and helpful - you WANT to assist customers
+2. ALWAYS use "please" and offer to help further
+3. ALWAYS end with contact information when relevant
+4. NEVER use robotic labels like "Direct answer:" or "Key Points:"
+5. NEVER make up pricing, timelines, or guarantees
+6. NEVER provide legal advice - politely refer to the team
+7. If asked about IT support (printers, wifi), politely explain we only do cybersecurity/compliance
+8. If user writes in Arabic, respond in English and mention Arabic support is available by contacting the team directly
+
+## CONTACT INFORMATION
+- Email: info@dp-technologies.net
+- Phone: +962 790 552 879
+- Location: Amman, Jordan
+- Hours: Sunday-Thursday, 9 AM - 6 PM (Jordan Time)
+- Response Time: Within one business day"""
 
 # --- 8. INITIALIZE CHAT ---
 def get_greeting():
-    return """Hello! Welcome to **Digital Protection**.
-
-I'm your DP Assistant, here to help you with your questions. 
+    return """Hello! Welcome to **Digital Protection** 👋
+I'm your DP Assistant, and I'm here to help you with any questions. 
 How can I assist you today?"""
 
 if "messages" not in st.session_state:
@@ -292,7 +298,7 @@ if prompt := st.chat_input("Type your message..."):
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
             st.stop()
         
-        with st.spinner("Thinking..."):
+        with st.spinner(""):
             
             # Search knowledge base (if available)
             context = ""
@@ -303,23 +309,23 @@ if prompt := st.chat_input("Type your message..."):
                 except Exception as e:
                     context = ""
             
-            # Build prompt with strong formatting instructions
-            full_prompt = f"""SYSTEM INSTRUCTIONS:
-{SYSTEM_INSTRUCTIONS}
+            # Build prompt
+            full_prompt = f"""{SYSTEM_INSTRUCTIONS}
 
 ---
-KNOWLEDGE BASE (Use this information to answer accurately):
+COMPANY KNOWLEDGE BASE (Use this to answer accurately):
 {context}
 ---
 
-USER QUESTION: {prompt}
+CUSTOMER MESSAGE: {prompt}
 
-IMPORTANT REMINDERS BEFORE YOU RESPOND:
-1. Use **bold** for headers and key terms
-2. Use bullet points (-) for any list of items
-3. Keep it concise and professional
-4. Structure your response clearly
-5. Do NOT write long paragraphs
+REMEMBER:
+- Be warm, helpful, and professional
+- Write naturally like a real customer service rep
+- Use bullet points for lists (NO labels like "Key Points:")
+- NEVER start with "Direct answer:" or similar labels
+- Include contact info when helpful
+- Say "please" and offer to help further
 
 YOUR RESPONSE:"""
 
@@ -327,32 +333,38 @@ YOUR RESPONSE:"""
                 # Call Groq
                 response = client.chat.completions.create(
                     messages=[
-                        {"role": "system", "content": "You are a professional customer service assistant. Always format responses with bullet points and bold headers. Never write long paragraphs."},
+                        {"role": "system", "content": "You are a warm, helpful customer service assistant. Write naturally and conversationally. Never use robotic labels like 'Direct answer:' or 'Key Points:'. Be professional but friendly."},
                         {"role": "user", "content": full_prompt}
                     ],
                     model=GROQ_MODEL,
-                    temperature=0.5,  # Lower temperature for more consistent formatting
-                    max_tokens=500
+                    temperature=0.6,
+                    max_tokens=600
                 )
                 
                 answer = response.choices[0].message.content.strip()
                 
-                # Clean up response - remove unwanted openings
-                unwanted_starts = [
-                    "Dear", "Subject:", "Hello,", "Hi,", "I'm happy to help",
-                    "Thank you for reaching out", "Thanks for your question",
-                    "Great question", "Good question"
+                # Clean up any robotic labels that might slip through
+                robotic_labels = [
+                    "Direct answer:", "Direct Answer:",
+                    "Key Points:", "Key points:",
+                    "Key Considerations:", "Key considerations:",
+                    "Next Step:", "Next step:",
+                    "Response:", "Answer:",
+                    "Here is my response:", "Here's my response:"
                 ]
-                for start in unwanted_starts:
-                    if answer.lower().startswith(start.lower()):
-                        lines = answer.split("\n", 1)
-                        if len(lines) > 1:
-                            answer = lines[1].strip()
+                for label in robotic_labels:
+                    answer = answer.replace(label, "")
+                
+                # Clean up any double line breaks
+                while "\n\n\n" in answer:
+                    answer = answer.replace("\n\n\n", "\n\n")
+                
+                answer = answer.strip()
                 
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 
             except Exception as e:
-                error_msg = f"Error: {str(e)}"
-                st.error(error_msg)
-                st.session_state.messages.append({"role": "assistant", "content": f"I encountered an error. Please try again or contact us at info@dp-technologies.net"})
+                error_msg = "I apologize, but I'm having a little trouble right now. Please try again, or feel free to contact our team directly at info@dp-technologies.net or +962 790 552 879."
+                st.markdown(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
