@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import re
+import time
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from groq import Groq
@@ -16,22 +17,18 @@ st.set_page_config(
 # --- 2. CUSTOM CSS ---
 st.markdown("""
     <style>
-    /* Hide Streamlit branding */
     #MainMenu, header, footer, .stDeployButton {
         visibility: hidden !important;
         display: none !important;
     }
     
-    .stApp {
-        margin: 0 !important;
-    }
+    .stApp { margin: 0 !important; }
     
     .main .block-container {
         padding: 0.5rem 1rem 1rem 1rem !important;
         max-width: 100% !important;
     }
     
-    /* Chat container */
     .stChatFloatingInputContainer {
         bottom: 0 !important;
         background: white !important;
@@ -39,7 +36,6 @@ st.markdown("""
         border-top: 1px solid #eee;
     }
     
-    /* USER MESSAGE */
     [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
         flex-direction: row-reverse;
         text-align: right;
@@ -58,11 +54,8 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    [data-testid="stChatMessageAvatarUser"] {
-        display: none !important;
-    }
+    [data-testid="stChatMessageAvatarUser"] { display: none !important; }
     
-    /* ASSISTANT MESSAGE */
     [data-testid="stChatMessage"]:has(img) {
         background-color: #f1f3f4 !important;
         color: #1a1a1a !important;
@@ -78,48 +71,15 @@ st.markdown("""
         height: 28px !important;
     }
     
-    .stChatInput {
-        border-radius: 20px !important;
-    }
+    .stChatInput { border-radius: 20px !important; }
+    .stChatInput > div { border-radius: 20px !important; border: 1px solid #ddd !important; }
+    [data-testid="stSidebar"] { display: none !important; }
     
-    .stChatInput > div {
-        border-radius: 20px !important;
-        border: 1px solid #ddd !important;
-    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
     
-    [data-testid="stSidebar"] {
-        display: none !important;
-    }
-    
-    ::-webkit-scrollbar {
-        width: 6px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 3px;
-    }
-    
-    /* Language toggle button styling */
-    .lang-btn {
-        background-color: #002147;
-        color: white;
-        border: none;
-        padding: 5px 12px;
-        border-radius: 15px;
-        font-size: 12px;
-        cursor: pointer;
-    }
-    
-    /* Arabic text alignment */
-    .arabic-text {
-        direction: rtl;
-        text-align: right;
-    }
+    .arabic-text { direction: rtl; text-align: right; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -158,6 +118,7 @@ except Exception as e:
 
 # --- 6. MODEL CONFIGURATION ---
 GROQ_MODEL = "llama-3.3-70b-versatile"
+BACKUP_MODEL = "llama-3.1-8b-instant"  # Faster backup model
 
 # --- 7. GREETINGS ---
 GREETING_EN = """Hello! Welcome to **Digital Protection**.
@@ -179,61 +140,142 @@ GREETING_AR = """<div class="arabic-text">
 # --- 8. SYSTEM INSTRUCTIONS ---
 SYSTEM_INSTRUCTIONS_EN = """You are DP Assistant for Digital Protection, a data protection consultancy in Amman, Jordan.
 
-=== LANGUAGE RULE ===
-The user is writing in ENGLISH. You MUST respond in ENGLISH only.
+LANGUAGE: Respond in ENGLISH only.
 
-=== ABSOLUTE RULES ===
-1. NO EMOJIS: Never use emojis even if asked.
-2. NO LEGAL ADVICE: Never say something is "legal" or "illegal". Say: "I cannot provide legal advice. Please consult a qualified legal professional."
-3. NO CONTRACTS: Never offer to send contracts. Say: "I cannot generate contracts. Please contact our team directly."
-4. NO PRICING NUMBERS: Never give specific prices. Say pricing depends on scope.
-5. NO IT SUPPORT: We do NOT fix printers, WiFi, or hardware.
+RULES:
+1. NO EMOJIS ever
+2. NO LEGAL ADVICE - say "I cannot provide legal advice. Please consult a qualified legal professional."
+3. NO CONTRACTS - say "I cannot generate contracts. Please contact our team."
+4. NO SPECIFIC PRICES - say pricing depends on scope
+5. NO IT SUPPORT for printers, WiFi, hardware
 
-=== RESPONSE STYLE ===
-- Keep responses SHORT: 2-4 sentences for simple questions
-- Professional but friendly
-- Use bullet points only for 3+ items
+STYLE: Keep responses SHORT (2-4 sentences). Professional but friendly.
 
-=== CONTACT INFO ===
-Email: info@dp-technologies.net
-Phone: +962 790 552 879
-Location: Amman, Jordan"""
+SERVICES:
+- Privacy & Compliance: GDPR, ISO 27701, CBJ
+- Security Assessments: Vulnerability scanning, risk analysis
+- Network Security: Firewalls, WAF
+- Identity & Access Management: IAM/PAM
 
-SYSTEM_INSTRUCTIONS_AR = """انت مساعد DP لشركة Digital Protection، وهي شركة استشارات لحماية البيانات في عمان، الاردن.
+CONTACT: info@dp-technologies.net | +962 790 552 879 | Amman, Jordan"""
 
-=== قاعدة اللغة ===
-المستخدم يكتب بالعربية. يجب ان ترد بالعربية فقط.
+SYSTEM_INSTRUCTIONS_AR = """انت مساعد DP لشركة Digital Protection في عمان، الاردن.
 
-=== القواعد المطلقة ===
-1. بدون رموز تعبيرية: لا تستخدم الايموجي ابدا حتى لو طلب منك.
-2. بدون استشارات قانونية: لا تقل ابدا ان شيئا "قانوني" او "غير قانوني". قل: "لا استطيع تقديم استشارات قانونية. يرجى استشارة محام مختص."
-3. بدون عقود: لا تعرض ابدا ارسال عقود. قل: "لا استطيع انشاء عقود. يرجى التواصل مع فريقنا مباشرة."
-4. بدون ارقام اسعار: لا تعطي اسعارا محددة ابدا. قل ان التسعير يعتمد على نطاق المشروع.
-5. بدون دعم تقني عام: نحن لا نصلح الطابعات او الواي فاي او الاجهزة.
+اللغة: رد بالعربية فقط.
 
-=== اسلوب الرد ===
-- اجعل الردود قصيرة: 2-4 جمل للاسئلة البسيطة
-- مهني ولكن ودود
-- استخدم النقاط فقط عند وجود 3 عناصر او اكثر
+القواعد:
+1. بدون رموز تعبيرية ابدا
+2. بدون استشارات قانونية - قل "لا استطيع تقديم استشارات قانونية. يرجى استشارة محام مختص."
+3. بدون عقود - قل "لا استطيع انشاء عقود. يرجى التواصل مع فريقنا."
+4. بدون اسعار محددة - قل التسعير يعتمد على نطاق المشروع
+5. بدون دعم تقني للطابعات والواي فاي
 
-=== خدماتنا ===
-- الخصوصية والامتثال: GDPR، ISO 27701، متطلبات البنك المركزي الاردني
-- تقييمات الامن: فحص الثغرات وتحليل المخاطر
+الاسلوب: ردود قصيرة (2-4 جمل). مهني وودود.
+
+الخدمات:
+- الخصوصية والامتثال: GDPR، ISO 27701، البنك المركزي الاردني
+- تقييمات الامن: فحص الثغرات، تحليل المخاطر
 - امن الشبكات: جدران الحماية، WAF
-- ادارة الهوية والوصول: حلول IAM و PAM
+- ادارة الهوية والوصول: IAM/PAM
 
-=== معلومات الاتصال ===
-البريد الالكتروني: info@dp-technologies.net
-الهاتف: +962 790 552 879
-الموقع: عمان، الاردن"""
+التواصل: info@dp-technologies.net | +962 790 552 879 | عمان، الاردن"""
 
-# --- 9. HELPER FUNCTION: Detect Arabic ---
+# --- 9. HELPER FUNCTIONS ---
 def is_arabic(text):
     arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
-    arabic_chars = len(arabic_pattern.findall(text))
-    return arabic_chars > 0
+    return bool(arabic_pattern.search(text))
 
-# --- 10. INITIALIZE SESSION STATE ---
+def clean_response(answer, is_arabic_response=False):
+    """Clean up the response text"""
+    # Remove robotic labels
+    labels = ["Direct answer:", "Key Points:", "Key Considerations:", "Next Step:", 
+              "Response:", "Answer:", "الاجابة:", "النقاط الرئيسية:", "الخطوة التالية:"]
+    for label in labels:
+        answer = answer.replace(label, "")
+    
+    # Remove emojis
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"
+        u"\U0001F300-\U0001F5FF"
+        u"\U0001F680-\U0001F6FF"
+        u"\U0001F1E0-\U0001F1FF"
+        u"\U00002702-\U000027B0"
+        u"\U000024C2-\U0001F251"
+        "]+", flags=re.UNICODE)
+    answer = emoji_pattern.sub('', answer)
+    
+    # Clean whitespace
+    while "\n\n\n" in answer:
+        answer = answer.replace("\n\n\n", "\n\n")
+    
+    answer = answer.strip()
+    
+    # Wrap Arabic in RTL div
+    if is_arabic_response:
+        answer = f'<div class="arabic-text">{answer}</div>'
+    
+    return answer
+
+def call_groq_with_retry(client, messages, model, max_retries=3):
+    """Call Groq API with retry logic"""
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                messages=messages,
+                model=model,
+                temperature=0.5,
+                max_tokens=350,
+                timeout=30  # 30 second timeout
+            )
+            return response, None
+        except Exception as e:
+            last_error = str(e)
+            
+            # If rate limited, wait before retry
+            if "rate" in last_error.lower() or "limit" in last_error.lower():
+                time.sleep(2 * (attempt + 1))  # Exponential backoff: 2s, 4s, 6s
+            elif "timeout" in last_error.lower():
+                time.sleep(1)
+            else:
+                # For other errors, try backup model on second attempt
+                if attempt == 1 and model != BACKUP_MODEL:
+                    model = BACKUP_MODEL
+                time.sleep(1)
+    
+    return None, last_error
+
+# --- 10. FALLBACK RESPONSES ---
+FALLBACK_EN = {
+    "services": "We offer cybersecurity and compliance services including GDPR, ISO 27701, CBJ compliance, security assessments, and identity management. Contact us at info@dp-technologies.net for details.",
+    "pricing": "Pricing depends on the scope of your project. We offer fixed-price, time and materials, and retainer options. Contact info@dp-technologies.net for a quote.",
+    "location": "We are located in Amman, Jordan. Contact us at info@dp-technologies.net or +962 790 552 879.",
+    "default": "Thank you for your message. For detailed assistance, please contact our team at info@dp-technologies.net or +962 790 552 879."
+}
+
+FALLBACK_AR = {
+    "services": "نقدم خدمات الامن السيبراني والامتثال بما في ذلك GDPR و ISO 27701 والبنك المركزي الاردني وتقييمات الامن. تواصل معنا على info@dp-technologies.net",
+    "pricing": "التسعير يعتمد على نطاق مشروعك. نقدم خيارات السعر الثابت والوقت والمواد والاشتراك. تواصل معنا للحصول على عرض سعر.",
+    "location": "نحن في عمان، الاردن. تواصل معنا على info@dp-technologies.net او +962 790 552 879",
+    "default": "شكرا لرسالتك. للمساعدة التفصيلية، يرجى التواصل مع فريقنا على info@dp-technologies.net او +962 790 552 879"
+}
+
+def get_fallback_response(prompt, is_arabic_lang):
+    """Get a fallback response when API fails"""
+    prompt_lower = prompt.lower()
+    fallback = FALLBACK_AR if is_arabic_lang else FALLBACK_EN
+    
+    if any(word in prompt_lower for word in ["service", "خدم", "offer", "تقدم"]):
+        return fallback["services"]
+    elif any(word in prompt_lower for word in ["price", "cost", "سعر", "تكلف", "كم"]):
+        return fallback["pricing"]
+    elif any(word in prompt_lower for word in ["where", "location", "اين", "موقع"]):
+        return fallback["location"]
+    else:
+        return fallback["default"]
+
+# --- 11. INITIALIZE SESSION STATE ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
     
@@ -243,7 +285,10 @@ if "ui_language" not in st.session_state:
 if "greeting_shown" not in st.session_state:
     st.session_state.greeting_shown = False
 
-# --- 11. HEADER WITH LANGUAGE TOGGLE ---
+if "error_count" not in st.session_state:
+    st.session_state.error_count = 0
+
+# --- 12. HEADER WITH LANGUAGE TOGGLE ---
 query_params = st.query_params
 is_embedded = query_params.get("embed", "false").lower() == "true"
 
@@ -255,21 +300,19 @@ if not is_embedded:
     with col2:
         st.markdown("### Digital Protection Support")
     with col3:
-        # Language toggle button
         if st.session_state.ui_language == "en":
-            if st.button("بالعربية", key="lang_toggle", help="Switch to Arabic"):
+            if st.button("بالعربية", key="lang_toggle"):
                 st.session_state.ui_language = "ar"
                 st.session_state.messages = []
                 st.session_state.greeting_shown = False
                 st.rerun()
         else:
-            if st.button("English", key="lang_toggle", help="Switch to English"):
+            if st.button("English", key="lang_toggle"):
                 st.session_state.ui_language = "en"
                 st.session_state.messages = []
                 st.session_state.greeting_shown = False
                 st.rerun()
 else:
-    # Embedded version - smaller toggle
     col1, col2 = st.columns([5, 1])
     with col2:
         if st.session_state.ui_language == "en":
@@ -285,7 +328,7 @@ else:
                 st.session_state.greeting_shown = False
                 st.rerun()
 
-# --- 12. SHOW GREETING ---
+# --- 13. SHOW GREETING ---
 if not st.session_state.greeting_shown:
     if st.session_state.ui_language == "ar":
         st.session_state.messages = [{"role": "assistant", "content": GREETING_AR}]
@@ -293,17 +336,14 @@ if not st.session_state.greeting_shown:
         st.session_state.messages = [{"role": "assistant", "content": GREETING_EN}]
     st.session_state.greeting_shown = True
 
-# --- 13. DISPLAY CHAT HISTORY ---
+# --- 14. DISPLAY CHAT HISTORY ---
 for msg in st.session_state.messages:
     avatar = logo_path if msg["role"] == "assistant" else None
     with st.chat_message(msg["role"], avatar=avatar):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
-# --- 14. CHAT INPUT ---
-if st.session_state.ui_language == "ar":
-    input_placeholder = "اكتب رسالتك..."
-else:
-    input_placeholder = "Type your message..."
+# --- 15. CHAT INPUT ---
+input_placeholder = "اكتب رسالتك..." if st.session_state.ui_language == "ar" else "Type your message..."
 
 if prompt := st.chat_input(input_placeholder):
     
@@ -313,16 +353,15 @@ if prompt := st.chat_input(input_placeholder):
     
     with st.chat_message("assistant", avatar=logo_path):
         
-        if api_error:
-            error_msg = "Configuration error. Please contact info@dp-technologies.net"
-            st.error(error_msg)
-            st.session_state.messages.append({"role": "assistant", "content": error_msg})
-            st.stop()
-        
-        if client is None:
-            error_msg = "Service unavailable. Please contact info@dp-technologies.net"
-            st.error(error_msg)
-            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        # Check for configuration errors
+        if api_error or client is None:
+            # Use fallback response
+            is_ar = is_arabic(prompt) or st.session_state.ui_language == "ar"
+            fallback = get_fallback_response(prompt, is_ar)
+            if is_ar:
+                fallback = f'<div class="arabic-text">{fallback}</div>'
+            st.markdown(fallback, unsafe_allow_html=True)
+            st.session_state.messages.append({"role": "assistant", "content": fallback})
             st.stop()
         
         with st.spinner(""):
@@ -336,69 +375,46 @@ if prompt := st.chat_input(input_placeholder):
                 except:
                     context = ""
             
-            # Detect language from message OR use UI language
+            # Detect language
             user_speaks_arabic = is_arabic(prompt) or st.session_state.ui_language == "ar"
             
             # Select instructions
             if user_speaks_arabic:
                 system_instructions = SYSTEM_INSTRUCTIONS_AR
-                language_reminder = "رد بالعربية فقط. اجعل الرد قصيرا (2-4 جمل). بدون رموز تعبيرية."
+                language_reminder = "رد بالعربية فقط. ردود قصيرة. بدون رموز تعبيرية."
             else:
                 system_instructions = SYSTEM_INSTRUCTIONS_EN
-                language_reminder = "Respond in English only. Keep response short (2-4 sentences). No emojis."
+                language_reminder = "Respond in English only. Keep it short. No emojis."
             
             full_prompt = (
                 system_instructions + 
-                "\n\n=== KNOWLEDGE BASE ===\n" + context +
-                "\n\n=== CUSTOMER MESSAGE ===\n" + prompt +
-                "\n\n=== REMINDER ===\n" + language_reminder +
-                "\n\n=== YOUR RESPONSE ==="
+                "\n\nKNOWLEDGE BASE:\n" + context +
+                "\n\nCUSTOMER: " + prompt +
+                "\n\nREMINDER: " + language_reminder
             )
 
-            try:
-                response = client.chat.completions.create(
-                    messages=[
-                        {"role": "system", "content": f"You are a bilingual assistant (English/Arabic). {language_reminder}"},
-                        {"role": "user", "content": full_prompt}
-                    ],
-                    model=GROQ_MODEL,
-                    temperature=0.5,
-                    max_tokens=350
-                )
-                
+            # Call API with retry
+            response, error = call_groq_with_retry(
+                client,
+                messages=[
+                    {"role": "system", "content": f"Bilingual assistant. {language_reminder}"},
+                    {"role": "user", "content": full_prompt}
+                ],
+                model=GROQ_MODEL
+            )
+            
+            if response:
+                # Success - reset error count
+                st.session_state.error_count = 0
                 answer = response.choices[0].message.content.strip()
-                
-                # Clean up
-                for label in ["Direct answer:", "Key Points:", "Key Considerations:", "Next Step:", "Response:", "Answer:", "الاجابة:", "النقاط الرئيسية:"]:
-                    answer = answer.replace(label, "")
-                
-                # Remove emojis
-                emoji_pattern = re.compile("["
-                    u"\U0001F600-\U0001F64F"
-                    u"\U0001F300-\U0001F5FF"
-                    u"\U0001F680-\U0001F6FF"
-                    u"\U0001F1E0-\U0001F1FF"
-                    u"\U00002702-\U000027B0"
-                    u"\U000024C2-\U0001F251"
-                    "]+", flags=re.UNICODE)
-                answer = emoji_pattern.sub('', answer)
-                
-                while "\n\n\n" in answer:
-                    answer = answer.replace("\n\n\n", "\n\n")
-                
-                answer = answer.strip()
-                
-                # Wrap Arabic responses
-                if user_speaks_arabic:
-                    answer = f'<div class="arabic-text">{answer}</div>'
-                
+                answer = clean_response(answer, user_speaks_arabic)
                 st.markdown(answer, unsafe_allow_html=True)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
-                
-            except Exception as e:
+            else:
+                # API failed - use fallback
+                st.session_state.error_count += 1
+                fallback = get_fallback_response(prompt, user_speaks_arabic)
                 if user_speaks_arabic:
-                    error_msg = "عذرا، حدث خطا. يرجى المحاولة مرة اخرى او التواصل معنا على info@dp-technologies.net"
-                else:
-                    error_msg = "Sorry, an error occurred. Please try again or contact info@dp-technologies.net"
-                st.markdown(error_msg)
-                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                    fallback = f'<div class="arabic-text">{fallback}</div>'
+                st.markdown(fallback, unsafe_allow_html=True)
+                st.session_state.messages.append({"role": "assistant", "content": fallback})
