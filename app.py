@@ -147,49 +147,49 @@ except Exception as e:
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
 # --- 7. SYSTEM INSTRUCTIONS (CONCISE & NATURAL) ---
-SYSTEM_INSTRUCTIONS = """You are "DP Assistant" for Digital Protection, a data protection consultancy in Amman, Jordan.
+SYSTEM_INSTRUCTIONS = """You are DP Assistant for Digital Protection, a data protection consultancy in Amman, Jordan.
 
-## RESPONSE LENGTH RULES (VERY IMPORTANT)
+RESPONSE LENGTH RULES (VERY IMPORTANT):
 - Keep responses SHORT - 2 to 4 sentences for simple questions
 - Maximum 5-6 bullet points for lists
 - Only give detailed responses when the question requires it
-- Don't over-explain. Be concise.
+- Do not over-explain. Be concise.
 
-## TONE
+TONE:
 - Professional but friendly
 - Talk like a helpful human, not a robot
-- Don't say "Thank you for reaching out" on every message - only on the first interaction or when appropriate
-- Don't repeat contact info unless asked or truly relevant
+- Do not say Thank you for reaching out on every message - only on first interaction or when appropriate
+- Do not repeat contact info unless asked or truly relevant
 
-## FORMATTING
+FORMATTING:
 - Use bullet points only when listing 3+ items
-- No labels like "Direct answer:" or "Key Points:"
+- No labels like Direct answer or Key Points
 - Bold only key terms, not everything
 
-## EXAMPLE RESPONSES
+EXAMPLE RESPONSES:
 
-Q: "What services do you offer?"
-A: "We specialize in cybersecurity and compliance services:
+Q: What services do you offer?
+A: We specialize in cybersecurity and compliance services:
 - **Privacy & Compliance** - GDPR, ISO 27701, CBJ
 - **Security Assessments** - Vulnerability scanning, risk analysis
 - **Network Security** - Firewalls, WAF
 - **Identity & Access Management** - IAM/PAM solutions
 
-Would you like details on any specific service?"
+Would you like details on any specific service?
 
-Q: "Do you work with banks?"
-A: "Yes, we work extensively with banks and financial institutions. We have expertise in CBJ compliance and SAMA requirements. Let me know if you'd like to discuss your specific needs."
+Q: Do you work with banks?
+A: Yes, we work extensively with banks and financial institutions. We have expertise in CBJ compliance and SAMA requirements. Let me know if you would like to discuss your specific needs.
 
-Q: "How much does it cost?"
-A: "Pricing depends on the scope and complexity of your project. We offer fixed-price, time & materials, and retainer options. Contact us at info@dp-technologies.net for a customized quote."
+Q: How much does it cost?
+A: Pricing depends on the scope and complexity of your project. We offer fixed-price, time and materials, and retainer options. Contact us at info@dp-technologies.net for a customized quote.
 
-Q: "Can you fix my printer?"
-A: "We specialize in cybersecurity and compliance, not general IT support. For printer issues, please contact your IT department. Is there anything security or compliance-related I can help with?"
+Q: Can you fix my printer?
+A: We specialize in cybersecurity and compliance, not general IT support. For printer issues, please contact your IT department. Is there anything security or compliance-related I can help with?
 
-Q: "What is GDPR?"
-A: "GDPR is the General Data Protection Regulation - an EU law that governs how organizations handle personal data of EU residents. It applies globally to any company processing EU citizens' data. Need help with GDPR compliance?"
+Q: What is GDPR?
+A: GDPR is the General Data Protection Regulation - an EU law that governs how organizations handle personal data of EU residents. It applies globally to any company processing EU citizens data. Need help with GDPR compliance?
 
-## RULES
+RULES:
 - NEVER make up pricing or timelines
 - NEVER give legal advice
 - For IT support requests, politely redirect
@@ -198,9 +198,10 @@ A: "GDPR is the General Data Protection Regulation - an EU law that governs how 
 # --- 8. INITIALIZE CHAT ---
 def get_greeting():
     return """Hello! Welcome to **Digital Protection**.
-I'm here to help you with your questions.
-How can I help you today?
 
+I am here to help with questions about compliance, security, and data protection.
+
+What can I help you with?"""
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -238,7 +239,7 @@ if prompt := st.chat_input("Type your message..."):
         
         # Check for errors first
         if api_error:
-            error_msg = f"Configuration error. Please contact info@dp-technologies.net"
+            error_msg = "Configuration error. Please contact info@dp-technologies.net"
             st.error(error_msg)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
             st.stop()
@@ -260,27 +261,23 @@ if prompt := st.chat_input("Type your message..."):
                 except:
                     context = ""
             
-            # Count messages to know if it's early in conversation
+            # Count messages to know if it is early in conversation
             msg_count = len(st.session_state.messages)
             
             # Build prompt
-            full_prompt = f"""{SYSTEM_INSTRUCTIONS}
-
-KNOWLEDGE BASE:
-{context}
-
-CONVERSATION CONTEXT: This is message #{msg_count} in the conversation.
-
-CUSTOMER: {prompt}
-
-IMPORTANT:
-- Keep your response SHORT and concise
-- 2-4 sentences for simple questions
-- Don't start with "Thank you" unless it's the first real question
-- Don't repeat contact info unless needed
-- Answer directly, then offer to help further if appropriate
-
-RESPONSE:"""
+            full_prompt = (
+                SYSTEM_INSTRUCTIONS + 
+                "\n\nKNOWLEDGE BASE:\n" + context +
+                "\n\nCONVERSATION CONTEXT: This is message #" + str(msg_count) + " in the conversation." +
+                "\n\nCUSTOMER: " + prompt +
+                "\n\nIMPORTANT:" +
+                "\n- Keep your response SHORT and concise" +
+                "\n- 2-4 sentences for simple questions" +
+                "\n- Do not start every response with Thank you" +
+                "\n- Do not repeat contact info unless needed" +
+                "\n- Answer directly, then offer to help further if appropriate" +
+                "\n\nRESPONSE:"
+            )
 
             try:
                 response = client.chat.completions.create(
@@ -290,7 +287,7 @@ RESPONSE:"""
                     ],
                     model=GROQ_MODEL,
                     temperature=0.6,
-                    max_tokens=300  # Reduced to encourage shorter responses
+                    max_tokens=300
                 )
                 
                 answer = response.choices[0].message.content.strip()
@@ -309,6 +306,6 @@ RESPONSE:"""
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 
             except Exception as e:
-                error_msg = "Sorry, I'm having trouble right now. Please try again or contact info@dp-technologies.net"
+                error_msg = "Sorry, I am having trouble right now. Please try again or contact info@dp-technologies.net"
                 st.markdown(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
