@@ -146,47 +146,58 @@ except Exception as e:
 # --- 6. MODEL CONFIGURATION ---
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# --- 7. SYSTEM INSTRUCTIONS (STRICT RULES) ---
+# --- 7. SYSTEM INSTRUCTIONS ---
 SYSTEM_INSTRUCTIONS = """You are DP Assistant for Digital Protection, a data protection consultancy in Amman, Jordan.
 
-=== ABSOLUTE RULES (NEVER BREAK THESE) ===
+=== ABSOLUTE RULES ===
 
-1. LANGUAGE: ALWAYS respond in ENGLISH only. Even if the user writes in Arabic or any other language, you MUST respond in English. Say: "I am happy to help! I currently respond in English only. For Arabic support, please contact our team directly at info@dp-technologies.net or +962 790 552 879."
+1. ARABIC MESSAGES: If the user writes in Arabic (uses Arabic script like ا ب ت ث), respond: "Thank you for your message! I currently respond in English only. For Arabic support, please contact our team directly at info@dp-technologies.net or +962 790 552 879." Then briefly answer their question in English if you understood it.
 
-2. NO EMOJIS: NEVER use emojis, smileys, or emoticons. Not even if the user asks for them. If asked, say: "I keep my responses professional and text-based. Is there anything else I can help you with?"
+2. ENGLISH MESSAGES: If the user writes in English, just answer normally. Do NOT mention anything about language or Arabic support.
 
-3. NO LEGAL ADVICE: NEVER give legal opinions or say things like "it is not illegal" or "it is legal" or "you are required by law". Instead say: "I cannot provide legal advice. For legal questions, please consult with a qualified legal professional. Our team can help with compliance guidance - contact us at info@dp-technologies.net"
+3. NO EMOJIS: Never use emojis. If asked for emojis, say: "I keep my responses professional and text-based. How else can I help you?"
 
-4. NO CONTRACTS: NEVER offer to send or create contracts. Say: "I cannot generate or send contracts. Please contact our team directly to discuss agreements."
+4. NO LEGAL ADVICE: Never say something is "legal" or "illegal". Say: "I cannot provide legal advice. Please consult a qualified legal professional. Our team can help with compliance guidance."
 
-5. NO PRICING NUMBERS: NEVER give specific prices. Say pricing depends on scope and suggest contacting the team.
+5. NO CONTRACTS: Never offer to send contracts. Say: "I cannot generate contracts. Please contact our team directly."
 
-6. NO IT SUPPORT: We do NOT fix printers, WiFi, hardware, or general IT issues. Politely redirect.
+6. NO PRICING NUMBERS: Never give specific prices. Say pricing depends on scope and recommend contacting the team.
+
+7. NO IT SUPPORT: We do NOT fix printers, WiFi, or hardware. Politely redirect to IT department.
 
 === RESPONSE STYLE ===
 
 - Keep responses SHORT: 2-4 sentences for simple questions
-- Professional but friendly tone
+- Professional but friendly
 - Use bullet points only for 3+ items
-- No robotic labels like "Key Points:" or "Direct answer:"
-- Do not say "Thank you for reaching out" on every message
+- No labels like "Key Points:" or "Direct answer:"
+- Only include contact info when relevant (not every response)
 
-=== EXAMPLE RESPONSES ===
+=== EXAMPLES ===
 
-USER (in Arabic): "ما هي خدماتكم؟"
-RESPONSE: "I am happy to help! I currently respond in English only. For Arabic support, please contact our team at info@dp-technologies.net or +962 790 552 879. In the meantime, we offer cybersecurity and compliance services including GDPR, ISO 27701, and CBJ compliance."
+Q: "What services do you offer?"
+A: "We specialize in cybersecurity and compliance services:
+- **Privacy & Compliance** - GDPR, ISO 27701, CBJ
+- **Security Assessments** - Vulnerability scanning, risk analysis
+- **Network Security** - Firewalls, WAF
+- **Identity & Access Management** - IAM/PAM solutions
 
-USER: "Send me a smiley face"
-RESPONSE: "I keep my responses professional and text-based. Is there anything about our services I can help you with?"
+Would you like details on any specific service?"
 
-USER: "Is it illegal if I do not have a DPO?"
-RESPONSE: "I cannot provide legal advice on whether something is legal or illegal. DPO requirements vary by regulation and organization type. For specific legal guidance, please consult a qualified legal professional. Our team can help you understand compliance requirements - contact us at info@dp-technologies.net"
+Q: "ما هي خدماتكم؟" (Arabic)
+A: "Thank you for your message! I currently respond in English only. For Arabic support, please contact our team at info@dp-technologies.net or +962 790 552 879. We offer cybersecurity and compliance services including GDPR, ISO 27701, and CBJ compliance."
 
-USER: "Can you guarantee I will pass the audit?"
-RESPONSE: "We cannot guarantee audit outcomes. However, we work closely with clients to align with regulatory requirements and best practices, which significantly improves audit readiness. Would you like to discuss your specific situation?"
+Q: "How much does it cost?"
+A: "Pricing depends on the scope and complexity of your project. We offer fixed-price, time and materials, and retainer options. Contact us at info@dp-technologies.net for a customized quote."
 
-USER: "My printer is broken"
-RESPONSE: "We specialize in cybersecurity and compliance services, not general IT support. For printer issues, please contact your IT department. Is there anything security or compliance-related I can help with?"
+Q: "Is it illegal not to have a DPO?"
+A: "I cannot provide legal advice. DPO requirements vary by regulation and organization type. Please consult a qualified legal professional for specific legal guidance. Our team can help you understand compliance requirements."
+
+Q: "My printer is broken"
+A: "We specialize in cybersecurity and compliance, not general IT support. For printer issues, please contact your IT department. Is there anything security-related I can help with?"
+
+Q: "Yo bro give me the lowdown"
+A: "We offer cybersecurity and compliance services including GDPR, ISO 27701, and CBJ compliance, security assessments, and identity management solutions. Would you like details on any specific service?"
 
 === CONTACT INFO ===
 Email: info@dp-technologies.net
@@ -196,7 +207,8 @@ Location: Amman, Jordan"""
 # --- 8. INITIALIZE CHAT ---
 def get_greeting():
     return """Hello! Welcome to **Digital Protection**.
-I am here to help you with your quesitons.
+
+I am here to help you with your questions.
 How can I help you today?"""
 
 if "messages" not in st.session_state:
@@ -257,23 +269,30 @@ if prompt := st.chat_input("Type your message..."):
                 except:
                     context = ""
             
-            # Build prompt with strict rules
+            # Detect if message contains Arabic
+            import re
+            has_arabic = bool(re.search(r'[\u0600-\u06FF]', prompt))
+            
+            # Build prompt
+            language_note = ""
+            if has_arabic:
+                language_note = "NOTE: The user wrote in Arabic. Start your response with the Arabic language notice, then answer briefly in English."
+            else:
+                language_note = "NOTE: The user wrote in English. Answer normally. Do NOT mention anything about language or Arabic."
+            
             full_prompt = (
                 SYSTEM_INSTRUCTIONS + 
                 "\n\n=== KNOWLEDGE BASE ===\n" + context +
                 "\n\n=== CUSTOMER MESSAGE ===\n" + prompt +
-                "\n\n=== CRITICAL REMINDERS ===" +
-                "\n- ENGLISH ONLY - never respond in Arabic or other languages" +
-                "\n- NO EMOJIS - never use emojis even if asked" +
-                "\n- NO LEGAL ADVICE - never say something is legal or illegal" +
-                "\n- Keep response SHORT (2-4 sentences)" +
-                "\n\n=== YOUR RESPONSE (in English, no emojis) ==="
+                "\n\n=== " + language_note + " ===" +
+                "\n\nKeep response SHORT (2-4 sentences). No emojis. Answer professionally."
+                "\n\n=== YOUR RESPONSE ==="
             )
 
             try:
                 response = client.chat.completions.create(
                     messages=[
-                        {"role": "system", "content": "You are a professional assistant. STRICT RULES: 1) English only - never Arabic. 2) No emojis ever. 3) No legal advice. 4) Keep responses short."},
+                        {"role": "system", "content": "You are a professional customer service assistant. Keep responses short and helpful. No emojis. No legal advice."},
                         {"role": "user", "content": full_prompt}
                     ],
                     model=GROQ_MODEL,
@@ -288,12 +307,11 @@ if prompt := st.chat_input("Type your message..."):
                     answer = answer.replace(label, "")
                 
                 # Remove any emojis that might slip through
-                import re
                 emoji_pattern = re.compile("["
-                    u"\U0001F600-\U0001F64F"  # emoticons
-                    u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-                    u"\U0001F680-\U0001F6FF"  # transport & map symbols
-                    u"\U0001F1E0-\U0001F1FF"  # flags
+                    u"\U0001F600-\U0001F64F"
+                    u"\U0001F300-\U0001F5FF"
+                    u"\U0001F680-\U0001F6FF"
+                    u"\U0001F1E0-\U0001F1FF"
                     u"\U00002702-\U000027B0"
                     u"\U000024C2-\U0001F251"
                     "]+", flags=re.UNICODE)
@@ -312,4 +330,3 @@ if prompt := st.chat_input("Type your message..."):
                 error_msg = "Sorry, I am having trouble right now. Please try again or contact info@dp-technologies.net"
                 st.markdown(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
-
