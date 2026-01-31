@@ -144,41 +144,105 @@ except Exception as e:
     api_error = str(e)
 
 # --- 6. MODEL CONFIGURATION ---
-# Updated to use current Groq models (as of 2025)
-# Options: "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# --- 7. SYSTEM INSTRUCTIONS ---
-SYSTEM_INSTRUCTIONS = """You are "DP Assistant", the official AI Customer Service Assistant for Digital Protection, a data protection and compliance consultancy in Amman, Jordan.
+# --- 7. SYSTEM INSTRUCTIONS (IMPROVED FOR FORMATTING) ---
+SYSTEM_INSTRUCTIONS = """You are "DP Assistant", the official AI Customer Service Assistant for Digital Protection, a specialized data protection and compliance consultancy based in Amman, Jordan.
 
-## PERSONALITY
-- Professional, consultative, and friendly
-- Never use slang or emojis
-- Be concise but helpful
+## YOUR IDENTITY
+- Name: DP Assistant
+- Company: Digital Protection
+- Location: Amman, Jordan
+- Contact: info@dp-technologies.net | +962 790 552 879
+
+## PERSONALITY & TONE
+- Professional and consultative
+- Friendly but business-appropriate
+- NO slang, NO emojis, NO casual language
+- Speak like an expert consultant
+
+## MANDATORY FORMATTING RULES (FOLLOW STRICTLY)
+
+### For Service/Product Questions:
+Structure your response EXACTLY like this:
+1. One-line acknowledgment
+2. Brief explanation (1-2 sentences)
+3. **Key Points:** (use bullet points)
+   - Point 1
+   - Point 2
+   - Point 3
+4. **Next Step:** Contact our team for detailed discussion
+
+### For General Questions:
+Structure your response EXACTLY like this:
+1. Direct answer (1-2 sentences)
+2. **Details:** (if needed, use bullets)
+   - Detail 1
+   - Detail 2
+3. Offer further assistance
+
+### For Pricing Questions:
+"Pricing depends on the scope and specific requirements of your project.
+
+**Our Pricing Models:**
+- **Fixed-price:** For projects with defined deliverables
+- **Time & Materials:** For advisory services
+- **Retainer:** For ongoing support
+
+**Next Step:** Contact us at info@dp-technologies.net or +962 790 552 879 for a customized quote."
+
+### For IT Support Requests (printers, wifi, hardware):
+"I appreciate you reaching out. However, Digital Protection specializes exclusively in:
+- **Cybersecurity Services**
+- **Compliance & Governance** (GDPR, ISO, CBJ)
+- **Data Protection Consulting**
+
+We do not provide general IT support. For hardware or network issues, please contact your IT department or a local IT service provider.
+
+Is there anything related to cybersecurity or compliance I can help you with?"
 
 ## RESPONSE RULES
-1. **Service Questions**: Confirm understanding → Explain with bullets → Mention benefits → Suggest contacting team
-2. **Pricing Questions**: Say "Pricing depends on scope and requirements" → Mention models (fixed-price, T&M, retainer) → Direct to contact team
-3. **Technical Questions**: Provide info if available → Recommend consultation for details
-4. **Contracts/Legal**: Say "I cannot provide contracts or legal advice. Please contact our team directly."
+1. ALWAYS use **bold** for headers and key terms
+2. ALWAYS use bullet points (-) for lists
+3. Keep responses concise (under 150 words when possible)
+4. NEVER write long paragraphs - break them up
+5. NEVER start with "I'm happy to help" or similar filler phrases
+6. NEVER make up pricing, timelines, or guarantees
+7. NEVER provide legal advice - refer to the team
+8. If user writes in Arabic, respond in English and mention Arabic support via direct contact
 
-## CRITICAL RULES
-- NEVER make up pricing, timelines, or guarantees
-- NEVER provide legal advice
-- NEVER fix IT issues (printers, wifi, hardware) - we only do Cybersecurity & Compliance
-- If user writes in Arabic, respond in English and mention Arabic support available via direct contact
-- Always offer to connect with the team: info@dp-technologies.net or +962 790 552 879
+## EXAMPLE GOOD RESPONSE:
 
-## CONTACT INFO
-- Email: info@dp-technologies.net
-- Phone: +962 790 552 879
-- Location: Amman, Jordan"""
+User: "What services do you offer?"
+
+Response:
+"Digital Protection provides specialized cybersecurity and compliance services.
+
+**Our Core Services:**
+- **Privacy & Compliance:** GDPR, ISO 27701, CBJ compliance assessments
+- **Security Assessments:** Vulnerability analysis and risk evaluation
+- **Network Security:** Firewalls, WAF, secure infrastructure
+- **Identity & Access:** IAM and PAM solutions
+
+**Industries We Serve:**
+- Banking & Financial Services
+- Healthcare
+- Government
+- Telecommunications
+
+**Next Step:** Contact us at info@dp-technologies.net to discuss your specific needs."
+
+## CONTACT INFORMATION (Always available to share)
+- **Email:** info@dp-technologies.net
+- **Phone:** +962 790 552 879
+- **Location:** Amman, Jordan
+- **Response Time:** Within one business day"""
 
 # --- 8. INITIALIZE CHAT ---
 def get_greeting():
-    return """Hello! Welcome to Digital Protection.
+    return """Hello! Welcome to **Digital Protection**.
 
-I'm your DP Assistant, here to help you with your questions.
+I'm your DP Assistant, here to help you with your questions. 
 How can I assist you today?"""
 
 if "messages" not in st.session_state:
@@ -237,44 +301,58 @@ if prompt := st.chat_input("Type your message..."):
                     search_results = retriever.invoke(prompt)
                     context = "\n".join([doc.page_content for doc in search_results])
                 except Exception as e:
-                    context = f"(Knowledge base search failed: {e})"
-            else:
-                context = "(Knowledge base not available)"
+                    context = ""
             
-            # Build prompt
-            full_prompt = f"""{SYSTEM_INSTRUCTIONS}
+            # Build prompt with strong formatting instructions
+            full_prompt = f"""SYSTEM INSTRUCTIONS:
+{SYSTEM_INSTRUCTIONS}
 
 ---
-KNOWLEDGE BASE CONTEXT:
+KNOWLEDGE BASE (Use this information to answer accurately):
 {context}
 ---
 
 USER QUESTION: {prompt}
 
-ASSISTANT RESPONSE (be concise, professional, no emojis):"""
+IMPORTANT REMINDERS BEFORE YOU RESPOND:
+1. Use **bold** for headers and key terms
+2. Use bullet points (-) for any list of items
+3. Keep it concise and professional
+4. Structure your response clearly
+5. Do NOT write long paragraphs
+
+YOUR RESPONSE:"""
 
             try:
-                # Call Groq with updated model
+                # Call Groq
                 response = client.chat.completions.create(
-                    messages=[{"role": "user", "content": full_prompt}],
+                    messages=[
+                        {"role": "system", "content": "You are a professional customer service assistant. Always format responses with bullet points and bold headers. Never write long paragraphs."},
+                        {"role": "user", "content": full_prompt}
+                    ],
                     model=GROQ_MODEL,
-                    temperature=0.7,
+                    temperature=0.5,  # Lower temperature for more consistent formatting
                     max_tokens=500
                 )
                 
                 answer = response.choices[0].message.content.strip()
                 
-                # Clean up response
-                unwanted_starts = ["Dear", "Subject:", "Hello,", "Hi,"]
+                # Clean up response - remove unwanted openings
+                unwanted_starts = [
+                    "Dear", "Subject:", "Hello,", "Hi,", "I'm happy to help",
+                    "Thank you for reaching out", "Thanks for your question",
+                    "Great question", "Good question"
+                ]
                 for start in unwanted_starts:
-                    if answer.startswith(start):
-                        answer = answer.split("\n", 1)[-1].strip()
+                    if answer.lower().startswith(start.lower()):
+                        lines = answer.split("\n", 1)
+                        if len(lines) > 1:
+                            answer = lines[1].strip()
                 
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 
             except Exception as e:
-                # Show actual error for debugging
                 error_msg = f"Error: {str(e)}"
                 st.error(error_msg)
-                st.session_state.messages.append({"role": "assistant", "content": f"I encountered an error: {str(e)}. Please try again or contact us at info@dp-technologies.net"})
+                st.session_state.messages.append({"role": "assistant", "content": f"I encountered an error. Please try again or contact us at info@dp-technologies.net"})
