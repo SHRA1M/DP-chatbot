@@ -13,16 +13,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. CUSTOM CSS FOR IFRAME EMBEDDING ---
+# --- 2. CUSTOM CSS ---
 st.markdown("""
     <style>
-    /* Hide Streamlit branding for cleaner embed */
+    /* Hide Streamlit branding */
     #MainMenu, header, footer, .stDeployButton {
         visibility: hidden !important;
         display: none !important;
     }
     
-    /* Remove default padding for iframe */
     .stApp {
         margin: 0 !important;
     }
@@ -40,7 +39,7 @@ st.markdown("""
         border-top: 1px solid #eee;
     }
     
-    /* USER MESSAGE: Right Aligned, Blue Background */
+    /* USER MESSAGE */
     [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
         flex-direction: row-reverse;
         text-align: right;
@@ -63,7 +62,7 @@ st.markdown("""
         display: none !important;
     }
     
-    /* ASSISTANT MESSAGE: Left Aligned, Light Grey */
+    /* ASSISTANT MESSAGE */
     [data-testid="stChatMessage"]:has(img) {
         background-color: #f1f3f4 !important;
         color: #1a1a1a !important;
@@ -74,13 +73,11 @@ st.markdown("""
         margin-bottom: 8px;
     }
     
-    /* Assistant avatar smaller */
     [data-testid="stChatMessage"] img {
         width: 28px !important;
         height: 28px !important;
     }
     
-    /* Input styling */
     .stChatInput {
         border-radius: 20px !important;
     }
@@ -90,12 +87,10 @@ st.markdown("""
         border: 1px solid #ddd !important;
     }
     
-    /* Hide sidebar completely */
     [data-testid="stSidebar"] {
         display: none !important;
     }
     
-    /* Scrollbar styling */
     ::-webkit-scrollbar {
         width: 6px;
     }
@@ -107,6 +102,23 @@ st.markdown("""
     ::-webkit-scrollbar-thumb {
         background: #c1c1c1;
         border-radius: 3px;
+    }
+    
+    /* Language toggle button styling */
+    .lang-btn {
+        background-color: #002147;
+        color: white;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    
+    /* Arabic text alignment */
+    .arabic-text {
+        direction: rtl;
+        text-align: right;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -147,7 +159,24 @@ except Exception as e:
 # --- 6. MODEL CONFIGURATION ---
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# --- 7. SYSTEM INSTRUCTIONS (BILINGUAL) ---
+# --- 7. GREETINGS ---
+GREETING_EN = """Hello! Welcome to **Digital Protection**.
+
+I am here to help you with your questions.
+
+How can I help you?"""
+
+GREETING_AR = """<div class="arabic-text">
+
+مرحبا! اهلا بك في **Digital Protection**.
+
+انا هنا لمساعدتك في اسئلتك.
+
+كيف يمكنني مساعدتك؟
+
+</div>"""
+
+# --- 8. SYSTEM INSTRUCTIONS ---
 SYSTEM_INSTRUCTIONS_EN = """You are DP Assistant for Digital Protection, a data protection consultancy in Amman, Jordan.
 
 === LANGUAGE RULE ===
@@ -198,59 +227,92 @@ SYSTEM_INSTRUCTIONS_AR = """انت مساعد DP لشركة Digital Protection،
 الهاتف: +962 790 552 879
 الموقع: عمان، الاردن"""
 
-# --- 8. HELPER FUNCTION: Detect Arabic ---
+# --- 9. HELPER FUNCTION: Detect Arabic ---
 def is_arabic(text):
     arabic_pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
     arabic_chars = len(arabic_pattern.findall(text))
     return arabic_chars > 0
 
-# --- 9. INITIALIZE CHAT ---
-def get_greeting():
-    return """Hello! Welcome to **Digital Protection**.
-
-مرحبا! اهلا بك في **Digital Protection**.
-
-I am here to help with questions about compliance, security, and data protection.
-
-انا هنا لمساعدتك في اسئلة الامتثال والامن وحماية البيانات.
-
-How can I help you? | كيف يمكنني مساعدتك؟"""
-
+# --- 10. INITIALIZE SESSION STATE ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": get_greeting()}
-    ]
+    st.session_state.messages = []
+    
+if "ui_language" not in st.session_state:
+    st.session_state.ui_language = "en"
 
-# --- 10. HEADER (only if NOT embedded) ---
+if "greeting_shown" not in st.session_state:
+    st.session_state.greeting_shown = False
+
+# --- 11. HEADER WITH LANGUAGE TOGGLE ---
 query_params = st.query_params
 is_embedded = query_params.get("embed", "false").lower() == "true"
 
 if not is_embedded:
-    col1, col2 = st.columns([1, 5])
+    col1, col2, col3 = st.columns([1, 4, 2])
     with col1:
         if logo_path:
             st.image(logo_path, width=50)
     with col2:
         st.markdown("### Digital Protection Support")
+    with col3:
+        # Language toggle button
+        if st.session_state.ui_language == "en":
+            if st.button("بالعربية", key="lang_toggle", help="Switch to Arabic"):
+                st.session_state.ui_language = "ar"
+                st.session_state.messages = []
+                st.session_state.greeting_shown = False
+                st.rerun()
+        else:
+            if st.button("English", key="lang_toggle", help="Switch to English"):
+                st.session_state.ui_language = "en"
+                st.session_state.messages = []
+                st.session_state.greeting_shown = False
+                st.rerun()
+else:
+    # Embedded version - smaller toggle
+    col1, col2 = st.columns([5, 1])
+    with col2:
+        if st.session_state.ui_language == "en":
+            if st.button("عربي", key="lang_toggle_embed"):
+                st.session_state.ui_language = "ar"
+                st.session_state.messages = []
+                st.session_state.greeting_shown = False
+                st.rerun()
+        else:
+            if st.button("EN", key="lang_toggle_embed"):
+                st.session_state.ui_language = "en"
+                st.session_state.messages = []
+                st.session_state.greeting_shown = False
+                st.rerun()
 
-# --- 11. DISPLAY CHAT HISTORY ---
+# --- 12. SHOW GREETING ---
+if not st.session_state.greeting_shown:
+    if st.session_state.ui_language == "ar":
+        st.session_state.messages = [{"role": "assistant", "content": GREETING_AR}]
+    else:
+        st.session_state.messages = [{"role": "assistant", "content": GREETING_EN}]
+    st.session_state.greeting_shown = True
+
+# --- 13. DISPLAY CHAT HISTORY ---
 for msg in st.session_state.messages:
     avatar = logo_path if msg["role"] == "assistant" else None
     with st.chat_message(msg["role"], avatar=avatar):
-        st.markdown(msg["content"])
+        st.markdown(msg["content"], unsafe_allow_html=True)
 
-# --- 12. HANDLE USER INPUT ---
-if prompt := st.chat_input("Type your message... | اكتب رسالتك..."):
+# --- 14. CHAT INPUT ---
+if st.session_state.ui_language == "ar":
+    input_placeholder = "اكتب رسالتك..."
+else:
+    input_placeholder = "Type your message..."
+
+if prompt := st.chat_input(input_placeholder):
     
-    # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    # Generate response
     with st.chat_message("assistant", avatar=logo_path):
         
-        # Check for errors first
         if api_error:
             error_msg = "Configuration error. Please contact info@dp-technologies.net"
             st.error(error_msg)
@@ -274,10 +336,10 @@ if prompt := st.chat_input("Type your message... | اكتب رسالتك..."):
                 except:
                     context = ""
             
-            # Detect language
-            user_speaks_arabic = is_arabic(prompt)
+            # Detect language from message OR use UI language
+            user_speaks_arabic = is_arabic(prompt) or st.session_state.ui_language == "ar"
             
-            # Select appropriate instructions
+            # Select instructions
             if user_speaks_arabic:
                 system_instructions = SYSTEM_INSTRUCTIONS_AR
                 language_reminder = "رد بالعربية فقط. اجعل الرد قصيرا (2-4 جمل). بدون رموز تعبيرية."
@@ -285,7 +347,6 @@ if prompt := st.chat_input("Type your message... | اكتب رسالتك..."):
                 system_instructions = SYSTEM_INSTRUCTIONS_EN
                 language_reminder = "Respond in English only. Keep response short (2-4 sentences). No emojis."
             
-            # Build prompt
             full_prompt = (
                 system_instructions + 
                 "\n\n=== KNOWLEDGE BASE ===\n" + context +
@@ -307,11 +368,11 @@ if prompt := st.chat_input("Type your message... | اكتب رسالتك..."):
                 
                 answer = response.choices[0].message.content.strip()
                 
-                # Clean up robotic labels
+                # Clean up
                 for label in ["Direct answer:", "Key Points:", "Key Considerations:", "Next Step:", "Response:", "Answer:", "الاجابة:", "النقاط الرئيسية:"]:
                     answer = answer.replace(label, "")
                 
-                # Remove any emojis
+                # Remove emojis
                 emoji_pattern = re.compile("["
                     u"\U0001F600-\U0001F64F"
                     u"\U0001F300-\U0001F5FF"
@@ -322,13 +383,16 @@ if prompt := st.chat_input("Type your message... | اكتب رسالتك..."):
                     "]+", flags=re.UNICODE)
                 answer = emoji_pattern.sub('', answer)
                 
-                # Clean up excessive whitespace
                 while "\n\n\n" in answer:
                     answer = answer.replace("\n\n\n", "\n\n")
                 
                 answer = answer.strip()
                 
-                st.markdown(answer)
+                # Wrap Arabic responses
+                if user_speaks_arabic:
+                    answer = f'<div class="arabic-text">{answer}</div>'
+                
+                st.markdown(answer, unsafe_allow_html=True)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 
             except Exception as e:
