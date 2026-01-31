@@ -146,59 +146,58 @@ except Exception as e:
 # --- 6. MODEL CONFIGURATION ---
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# --- 7. SYSTEM INSTRUCTIONS (CONCISE & NATURAL) ---
+# --- 7. SYSTEM INSTRUCTIONS (STRICT RULES) ---
 SYSTEM_INSTRUCTIONS = """You are DP Assistant for Digital Protection, a data protection consultancy in Amman, Jordan.
 
-RESPONSE LENGTH RULES (VERY IMPORTANT):
-- Keep responses SHORT - 2 to 4 sentences for simple questions
-- Maximum 5-6 bullet points for lists
-- Only give detailed responses when the question requires it
-- Do not over-explain. Be concise.
+=== ABSOLUTE RULES (NEVER BREAK THESE) ===
 
-TONE:
-- Professional but friendly
-- Talk like a helpful human, not a robot
-- Do not say Thank you for reaching out on every message - only on first interaction or when appropriate
-- Do not repeat contact info unless asked or truly relevant
+1. LANGUAGE: ALWAYS respond in ENGLISH only. Even if the user writes in Arabic or any other language, you MUST respond in English. Say: "I am happy to help! I currently respond in English only. For Arabic support, please contact our team directly at info@dp-technologies.net or +962 790 552 879."
 
-FORMATTING:
-- Use bullet points only when listing 3+ items
-- No labels like Direct answer or Key Points
-- Bold only key terms, not everything
+2. NO EMOJIS: NEVER use emojis, smileys, or emoticons. Not even if the user asks for them. If asked, say: "I keep my responses professional and text-based. Is there anything else I can help you with?"
 
-EXAMPLE RESPONSES:
+3. NO LEGAL ADVICE: NEVER give legal opinions or say things like "it is not illegal" or "it is legal" or "you are required by law". Instead say: "I cannot provide legal advice. For legal questions, please consult with a qualified legal professional. Our team can help with compliance guidance - contact us at info@dp-technologies.net"
 
-Q: What services do you offer?
-A: We specialize in cybersecurity and compliance services:
-- **Privacy & Compliance** - GDPR, ISO 27701, CBJ
-- **Security Assessments** - Vulnerability scanning, risk analysis
-- **Network Security** - Firewalls, WAF
-- **Identity & Access Management** - IAM/PAM solutions
+4. NO CONTRACTS: NEVER offer to send or create contracts. Say: "I cannot generate or send contracts. Please contact our team directly to discuss agreements."
 
-Would you like details on any specific service?
+5. NO PRICING NUMBERS: NEVER give specific prices. Say pricing depends on scope and suggest contacting the team.
 
-Q: Do you work with banks?
-A: Yes, we work extensively with banks and financial institutions. We have expertise in CBJ compliance and SAMA requirements. Let me know if you would like to discuss your specific needs.
+6. NO IT SUPPORT: We do NOT fix printers, WiFi, hardware, or general IT issues. Politely redirect.
 
-Q: How much does it cost?
-A: Pricing depends on the scope and complexity of your project. We offer fixed-price, time and materials, and retainer options. Contact us at info@dp-technologies.net for a customized quote.
+=== RESPONSE STYLE ===
 
-Q: Can you fix my printer?
-A: We specialize in cybersecurity and compliance, not general IT support. For printer issues, please contact your IT department. Is there anything security or compliance-related I can help with?
+- Keep responses SHORT: 2-4 sentences for simple questions
+- Professional but friendly tone
+- Use bullet points only for 3+ items
+- No robotic labels like "Key Points:" or "Direct answer:"
+- Do not say "Thank you for reaching out" on every message
 
-Q: What is GDPR?
-A: GDPR is the General Data Protection Regulation - an EU law that governs how organizations handle personal data of EU residents. It applies globally to any company processing EU citizens data. Need help with GDPR compliance?
+=== EXAMPLE RESPONSES ===
 
-RULES:
-- NEVER make up pricing or timelines
-- NEVER give legal advice
-- For IT support requests, politely redirect
-- Contact: info@dp-technologies.net | +962 790 552 879"""
+USER (in Arabic): "ما هي خدماتكم؟"
+RESPONSE: "I am happy to help! I currently respond in English only. For Arabic support, please contact our team at info@dp-technologies.net or +962 790 552 879. In the meantime, we offer cybersecurity and compliance services including GDPR, ISO 27701, and CBJ compliance."
+
+USER: "Send me a smiley face"
+RESPONSE: "I keep my responses professional and text-based. Is there anything about our services I can help you with?"
+
+USER: "Is it illegal if I do not have a DPO?"
+RESPONSE: "I cannot provide legal advice on whether something is legal or illegal. DPO requirements vary by regulation and organization type. For specific legal guidance, please consult a qualified legal professional. Our team can help you understand compliance requirements - contact us at info@dp-technologies.net"
+
+USER: "Can you guarantee I will pass the audit?"
+RESPONSE: "We cannot guarantee audit outcomes. However, we work closely with clients to align with regulatory requirements and best practices, which significantly improves audit readiness. Would you like to discuss your specific situation?"
+
+USER: "My printer is broken"
+RESPONSE: "We specialize in cybersecurity and compliance services, not general IT support. For printer issues, please contact your IT department. Is there anything security or compliance-related I can help with?"
+
+=== CONTACT INFO ===
+Email: info@dp-technologies.net
+Phone: +962 790 552 879
+Location: Amman, Jordan"""
 
 # --- 8. INITIALIZE CHAT ---
 def get_greeting():
     return """Hello! Welcome to **Digital Protection**.
-I am here to help you with your questions.
+
+I am here to help you with your quesitons.
 What can I help you with?"""
 
 if "messages" not in st.session_state:
@@ -259,32 +258,27 @@ if prompt := st.chat_input("Type your message..."):
                 except:
                     context = ""
             
-            # Count messages to know if it is early in conversation
-            msg_count = len(st.session_state.messages)
-            
-            # Build prompt
+            # Build prompt with strict rules
             full_prompt = (
                 SYSTEM_INSTRUCTIONS + 
-                "\n\nKNOWLEDGE BASE:\n" + context +
-                "\n\nCONVERSATION CONTEXT: This is message #" + str(msg_count) + " in the conversation." +
-                "\n\nCUSTOMER: " + prompt +
-                "\n\nIMPORTANT:" +
-                "\n- Keep your response SHORT and concise" +
-                "\n- 2-4 sentences for simple questions" +
-                "\n- Do not start every response with Thank you" +
-                "\n- Do not repeat contact info unless needed" +
-                "\n- Answer directly, then offer to help further if appropriate" +
-                "\n\nRESPONSE:"
+                "\n\n=== KNOWLEDGE BASE ===\n" + context +
+                "\n\n=== CUSTOMER MESSAGE ===\n" + prompt +
+                "\n\n=== CRITICAL REMINDERS ===" +
+                "\n- ENGLISH ONLY - never respond in Arabic or other languages" +
+                "\n- NO EMOJIS - never use emojis even if asked" +
+                "\n- NO LEGAL ADVICE - never say something is legal or illegal" +
+                "\n- Keep response SHORT (2-4 sentences)" +
+                "\n\n=== YOUR RESPONSE (in English, no emojis) ==="
             )
 
             try:
                 response = client.chat.completions.create(
                     messages=[
-                        {"role": "system", "content": "You are a concise, helpful assistant. Keep responses short - 2-4 sentences for simple questions. No unnecessary fluff."},
+                        {"role": "system", "content": "You are a professional assistant. STRICT RULES: 1) English only - never Arabic. 2) No emojis ever. 3) No legal advice. 4) Keep responses short."},
                         {"role": "user", "content": full_prompt}
                     ],
                     model=GROQ_MODEL,
-                    temperature=0.6,
+                    temperature=0.5,
                     max_tokens=300
                 )
                 
@@ -293,6 +287,18 @@ if prompt := st.chat_input("Type your message..."):
                 # Clean up robotic labels
                 for label in ["Direct answer:", "Key Points:", "Key Considerations:", "Next Step:", "Response:", "Answer:"]:
                     answer = answer.replace(label, "")
+                
+                # Remove any emojis that might slip through
+                import re
+                emoji_pattern = re.compile("["
+                    u"\U0001F600-\U0001F64F"  # emoticons
+                    u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                    u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                    u"\U0001F1E0-\U0001F1FF"  # flags
+                    u"\U00002702-\U000027B0"
+                    u"\U000024C2-\U0001F251"
+                    "]+", flags=re.UNICODE)
+                answer = emoji_pattern.sub('', answer)
                 
                 # Clean up excessive whitespace
                 while "\n\n\n" in answer:
@@ -307,4 +313,3 @@ if prompt := st.chat_input("Type your message..."):
                 error_msg = "Sorry, I am having trouble right now. Please try again or contact info@dp-technologies.net"
                 st.markdown(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
-
